@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#4F6BFF" />
+  <meta name="description" content="여행 중 각자 결제한 비용을 기록하고 한 번에 정산하는 모바일 웹앱" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+  <title>여행 가계부</title>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">우리 여행 공동 장부</p>
+        <h1 id="headerTripName">여행 가계부</h1>
+      </div>
+      <button class="icon-button" id="openSettingsBtn" aria-label="여행 설정">⚙️</button>
+    </header>
+
+    <main class="content">
+      <section class="view active" data-view="home">
+        <article class="hero-card">
+          <div>
+            <p class="hero-label">현재 총지출</p>
+            <h2 id="homeTotal">0원</h2>
+            <p class="hero-sub" id="homePeriod">여행 정보를 설정해줘</p>
+          </div>
+          <div class="hero-badge" id="memberCount">0명</div>
+        </article>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span>내가 결제</span>
+            <strong id="myPaid">0원</strong>
+          </article>
+          <article class="summary-card">
+            <span>내 부담액</span>
+            <strong id="myOwed">0원</strong>
+          </article>
+          <article class="summary-card accent-card">
+            <span id="myBalanceLabel">정산 상태</span>
+            <strong id="myBalance">0원</strong>
+          </article>
+        </div>
+
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">최근 기록</p>
+            <h3>최근 지출</h3>
+          </div>
+          <button class="text-button" data-go="expenses">전체 보기</button>
+        </div>
+        <div id="recentExpenses" class="expense-list"></div>
+
+        <div class="empty-state" id="homeEmpty">
+          <div class="empty-icon">🧾</div>
+          <strong>아직 기록된 지출이 없어</strong>
+          <p>결제한 사람이 바로 입력하면 여행이 끝난 뒤 정산이 쉬워져.</p>
+          <button class="primary-button" data-go="add">첫 지출 추가하기</button>
+        </div>
+      </section>
+
+      <section class="view" data-view="expenses">
+        <div class="section-heading sticky-heading">
+          <div>
+            <p class="eyebrow">전체 장부</p>
+            <h2>지출 내역</h2>
+          </div>
+          <button class="small-button" data-go="add">+ 추가</button>
+        </div>
+
+        <div class="filter-panel">
+          <input id="expenseSearch" type="search" placeholder="내역이나 메모 검색" />
+          <div class="filter-row">
+            <select id="categoryFilter">
+              <option value="">모든 카테고리</option>
+            </select>
+            <select id="payerFilter">
+              <option value="">모든 결제자</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="expenseList" class="expense-list"></div>
+        <div class="empty-state compact" id="expenseEmpty">
+          <div class="empty-icon">📒</div>
+          <strong>조건에 맞는 지출이 없어</strong>
+        </div>
+      </section>
+
+      <section class="view" data-view="add">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">빠른 기록</p>
+            <h2 id="expenseFormTitle">지출 추가</h2>
+          </div>
+          <button class="text-button hidden" id="cancelEditBtn">수정 취소</button>
+        </div>
+
+        <form id="expenseForm" class="form-card">
+          <input type="hidden" id="editingExpenseId" />
+
+          <label>
+            <span>사용 내역</span>
+            <input id="expenseTitle" required maxlength="40" placeholder="예: 바비큐 장보기" />
+          </label>
+
+          <label>
+            <span>금액</span>
+            <div class="money-input">
+              <input id="expenseAmount" required inputmode="numeric" placeholder="0" />
+              <b>원</b>
+            </div>
+          </label>
+
+          <div class="form-grid">
+            <label>
+              <span>날짜</span>
+              <input id="expenseDate" type="date" required />
+            </label>
+            <label>
+              <span>카테고리</span>
+              <select id="expenseCategory"></select>
+            </label>
+          </div>
+
+          <label>
+            <span>결제한 사람</span>
+            <select id="expensePayer" required></select>
+          </label>
+
+          <fieldset>
+            <legend>비용을 나눌 사람</legend>
+            <div class="participant-actions">
+              <button type="button" class="text-button" id="selectAllParticipants">전체 선택</button>
+              <button type="button" class="text-button muted" id="clearParticipants">선택 해제</button>
+            </div>
+            <div id="participantChecklist" class="chip-grid"></div>
+          </fieldset>
+
+          <fieldset>
+            <legend>나누는 방식</legend>
+            <div class="segment-control">
+              <label>
+                <input type="radio" name="splitMode" value="equal" checked />
+                <span>똑같이</span>
+              </label>
+              <label>
+                <input type="radio" name="splitMode" value="custom" />
+                <span>직접 입력</span>
+              </label>
+            </div>
+            <div id="customSplitBox" class="custom-split hidden"></div>
+            <p id="splitHint" class="hint">선택한 사람끼리 1원 단위까지 자동으로 나눠.</p>
+          </fieldset>
+
+          <label>
+            <span>메모 <small>선택</small></span>
+            <textarea id="expenseMemo" rows="3" maxlength="160" placeholder="예: 술값은 제외한 장보기 비용"></textarea>
+          </label>
+
+          <label>
+            <span>영수증 사진 <small>선택 · 1장</small></span>
+            <input id="receiptInput" type="file" accept="image/*" capture="environment" />
+          </label>
+          <div id="receiptPreviewWrap" class="receipt-preview hidden">
+            <img id="receiptPreview" alt="영수증 미리보기" />
+            <button type="button" class="danger-link" id="removeReceiptBtn">사진 삭제</button>
+          </div>
+
+          <p id="formError" class="form-error hidden"></p>
+          <button type="submit" class="primary-button full" id="saveExpenseBtn">지출 저장하기</button>
+        </form>
+      </section>
+
+      <section class="view" data-view="settlement">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">여행 마지막 단계</p>
+            <h2>정산</h2>
+          </div>
+          <button class="small-button" id="copySettlementBtn">결과 복사</button>
+        </div>
+
+        <article class="settlement-total-card">
+          <span>총지출</span>
+          <strong id="settlementTotal">0원</strong>
+          <p id="settlementSub">참여자를 등록하고 지출을 입력해줘.</p>
+        </article>
+
+        <div class="section-heading mini">
+          <h3>사람별 요약</h3>
+        </div>
+        <div id="personSummary" class="person-summary"></div>
+
+        <div class="section-heading mini">
+          <h3>추천 송금</h3>
+          <span class="badge">송금 횟수 최소화</span>
+        </div>
+        <div id="transferList" class="transfer-list"></div>
+
+        <div class="empty-state compact" id="settlementEmpty">
+          <div class="empty-icon">💸</div>
+          <strong>아직 계산할 지출이 없어</strong>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="주요 메뉴">
+      <button class="nav-item active" data-go="home">
+        <span>⌂</span><b>홈</b>
+      </button>
+      <button class="nav-item" data-go="expenses">
+        <span>≡</span><b>내역</b>
+      </button>
+      <button class="nav-add" data-go="add" aria-label="지출 추가">＋</button>
+      <button class="nav-item" data-go="settlement">
+        <span>₩</span><b>정산</b>
+      </button>
+    </nav>
+  </div>
+
+  <dialog id="settingsDialog" class="sheet-dialog">
+    <form method="dialog" class="dialog-shell" id="settingsForm">
+      <div class="dialog-handle"></div>
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">기본 설정</p>
+          <h2>여행 정보</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="닫기">✕</button>
+      </div>
+
+      <label>
+        <span>여행 이름</span>
+        <input id="tripNameInput" maxlength="30" placeholder="예: 사촌 가족여행" />
+      </label>
+
+      <div class="form-grid">
+        <label>
+          <span>시작일</span>
+          <input id="tripStartInput" type="date" />
+        </label>
+        <label>
+          <span>종료일</span>
+          <input id="tripEndInput" type="date" />
+        </label>
+      </div>
+
+      <label>
+        <span>내 이름</span>
+        <select id="meSelect"></select>
+      </label>
+
+      <fieldset>
+        <legend>참여자</legend>
+        <div class="participant-add-row">
+          <input id="newParticipantInput" maxlength="12" placeholder="이름 입력" />
+          <button type="button" class="small-button" id="addParticipantBtn">추가</button>
+        </div>
+        <div id="participantManageList" class="manage-list"></div>
+      </fieldset>
+
+      <div class="dialog-actions">
+        <button type="button" class="secondary-button" id="loadSampleBtn">예시 데이터 넣기</button>
+        <button type="submit" class="primary-button">저장</button>
+      </div>
+      <button type="button" class="danger-button" id="resetAppBtn">전체 데이터 초기화</button>
+    </form>
+  </dialog>
+
+  <dialog id="expenseDetailDialog" class="sheet-dialog">
+    <div class="dialog-shell">
+      <div class="dialog-handle"></div>
+      <div id="expenseDetailContent"></div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
