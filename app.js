@@ -1,4 +1,10 @@
-import {
+const AppwriteSDK = window.Appwrite;
+
+if (!AppwriteSDK) {
+  throw new Error("Appwrite SDK를 불러오지 못했어. 인터넷 연결을 확인하고 다시 불러와줘.");
+}
+
+const {
   Channel,
   Client,
   ID,
@@ -6,7 +12,11 @@ import {
   Realtime,
   Storage,
   TablesDB,
-} from "https://cdn.jsdelivr.net/npm/appwrite@26.1.0/dist/esm/sdk.js";
+} = AppwriteSDK;
+
+if (!Client || !TablesDB || !Storage || !ID || !Query) {
+  throw new Error("Appwrite SDK 구성요소를 불러오지 못했어. 페이지를 새로고침해줘.");
+}
 
 const CONFIG = Object.freeze({
   endpoint: "https://sgp.cloud.appwrite.io/v1",
@@ -40,7 +50,7 @@ const client = new Client()
 
 const tablesDB = new TablesDB(client);
 const storage = new Storage(client);
-const realtime = new Realtime(client);
+const realtime = Realtime ? new Realtime(client) : null;
 
 let state = {
   trip: { id: CONFIG.tripRowId, name: "", start: "", end: "" },
@@ -155,7 +165,7 @@ function readableError(error) {
     return "Appwrite 프로젝트·데이터베이스·테이블 또는 영수증 버킷 ID를 찾지 못했어. 설정값을 확인해줘.";
   }
   if (raw.includes("Failed to fetch") || raw.includes("NetworkError")) {
-    return "서버에 연결하지 못했어. 인터넷 연결과 Appwrite Web platform의 Vercel 주소를 확인해줘.";
+    return "Appwrite 연결이 차단됐어. Web platform의 Hostname이 26071617-hapjeong-trip.vercel.app인지 확인해줘.";
   }
   return raw;
 }
@@ -272,10 +282,21 @@ async function loadSharedData({ silent = false, force = false } = {}) {
   setSyncStatus("동기화 중", "syncing");
 
   try {
-    const [trip, participants, expenses] = await Promise.all([
+    const dataRequest = Promise.all([
       fetchTrip(),
       fetchParticipants(),
       fetchExpenses(),
+    ]);
+
+    const timeoutRequest = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(
+        "Appwrite 응답이 늦어지고 있어. Web platform 주소와 테이블 권한을 확인해줘."
+      )), 15000);
+    });
+
+    const [trip, participants, expenses] = await Promise.race([
+      dataRequest,
+      timeoutRequest,
     ]);
 
     state = { trip, participants, expenses };
@@ -309,6 +330,7 @@ function scheduleRefresh() {
 }
 
 async function setupRealtime() {
+  if (!realtime || !Channel) return;
   try {
     realtimeSubscription = await realtime.subscribe(
       [
@@ -1222,7 +1244,7 @@ function bindEvents() {
 
   window.addEventListener("beforeunload", () => {
     if (realtimeSubscription?.unsubscribe) realtimeSubscription.unsubscribe();
-    realtime.disconnect();
+    if (realtime?.disconnect) realtime.disconnect();
     revokePendingReceiptUrl();
   });
 }
@@ -1245,4 +1267,11 @@ async function init() {
   }
 }
 
-init();
+init().catch((error) => {
+  console.error("App initialization failed", error);
+  currentRequestCount = 0;
+  $("#loadingOverlay")?.classList.remove("hidden");
+  if (window.__travelLedgerBootError) {
+    window.__travelLedgerBootError(readableError(error));
+  }
+});
