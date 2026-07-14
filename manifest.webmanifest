@@ -1,7 +1,7 @@
 {
   "name": "여행 가계부",
   "short_name": "여행 가계부",
-  "description": "여행 중 각자 결제한 비용을 기록하고 한 번에 정산하는 모바일 웹앱",
+  "description": "모두가 함께 기록하고 정산하는 여행 가계부",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#F5F7FB",

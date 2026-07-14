@@ -518,3 +518,62 @@ legend {
   .sheet-dialog { margin-bottom: 30px; border-radius: 26px; }
   .dialog-shell { border-radius: 26px; }
 }
+
+/* Shared Appwrite version */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255,255,255,.85);
+  box-shadow: 0 6px 18px rgba(36,49,92,.06);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sync-status.syncing { color: var(--primary); }
+.sync-status.success { color: var(--green); }
+.sync-status.error { color: var(--red); }
+.settings-hint { margin: -8px 0 16px; }
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(245,247,251,.78);
+  backdrop-filter: blur(6px);
+}
+
+.loading-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 16px 19px;
+  border-radius: 18px;
+  background: white;
+  box-shadow: var(--shadow);
+  font-size: 13px;
+}
+
+.loading-spinner {
+  width: 19px;
+  height: 19px;
+  border: 3px solid #E3E7FF;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

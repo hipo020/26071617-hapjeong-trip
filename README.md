@@ -1,57 +1,58 @@
-# 여행 가계부 PWA
+# 여행 가계부 · Appwrite 공동 저장 버전
 
-여행 중 각자 결제한 비용을 기록하고 마지막에 자동 정산하는 모바일 웹앱입니다.
+Vercel에서 빠르게 열리고, Appwrite에 여행 정보·참여자·지출·영수증을 공동 저장하는 모바일 웹앱입니다.
 
-## 현재 들어간 기능
+## 연결 정보
 
-- 여행 이름·기간 설정
-- 참여자 등록 및 내 이름 선택
-- 지출 추가·수정·삭제
-- 결제자 지정
-- 비용 참여자 선택
-- 균등 분배
-- 사람별 금액 직접 입력
-- 영수증 사진 1장 첨부
-- 전체 지출 검색 및 필터
-- 사람별 결제액·부담액·잔액 계산
-- 송금 횟수를 줄인 추천 송금 결과
-- 정산 결과 클립보드 복사
-- 브라우저 내부 저장
-- PWA 설치 및 오프라인 캐시
+- Appwrite Endpoint: `https://sgp.cloud.appwrite.io/v1`
+- Project ID: `6a54f05f000bc614cd40`
+- Database ID: `travel-budget`
+- 여행정보 Table ID: `trips`
+- 참여자 Table ID: `participants`
+- 지출내역 Table ID: `expenses`
+- 영수증 Bucket ID: `receipts`
 
-## 빠르게 실행하기
+## 필요한 Appwrite 구조
 
-### 방법 1: VS Code Live Server
+### trips
+- `name`: Varchar 100, Required
+- `startDate`: Varchar 10, Optional
+- `endDate`: Varchar 10, Optional
 
-1. 압축을 풉니다.
-2. 폴더를 VS Code로 엽니다.
-3. `index.html`에서 우클릭합니다.
-4. `Open with Live Server`를 누릅니다.
+### participants
+- `name`: Varchar 100, Required
 
-### 방법 2: Python 간이 서버
+### expenses
+- `dataJson`: Varchar 10000, Required
 
-폴더 안에서 터미널을 열고 아래 명령어를 실행합니다.
+### receipts
+- JPG, JPEG, PNG, WEBP
+- 최대 5MB
 
-```bash
-python -m http.server 5173
-```
+세 테이블과 버킷 모두 Settings → Permissions에서 `Any` 역할에 Create, Read, Update, Delete 권한이 필요합니다. Row/File security는 끕니다.
 
-브라우저에서 `http://localhost:5173`으로 접속합니다.
+## GitHub에 반영하기
 
-## 갤럭시에서 앱처럼 설치하기
+이 ZIP의 압축을 푼 뒤, GitHub 저장소 최상단의 기존 파일을 전부 이 파일들로 교체합니다.
 
-Vercel 또는 GitHub Pages에 배포한 뒤 Chrome으로 접속합니다.
+- `index.html`
+- `styles.css`
+- `app.js`
+- `manifest.webmanifest`
+- `sw.js`
+- `vercel.json`
+- `icons` 폴더
 
-1. Chrome 오른쪽 위 메뉴를 엽니다.
-2. `앱 설치` 또는 `홈 화면에 추가`를 누릅니다.
-3. 설치된 아이콘으로 실행합니다.
+GitHub에 커밋하면 연결된 Vercel 프로젝트가 자동으로 다시 배포합니다.
 
-## 데이터 저장 방식
+## 배포 후
 
-현재 버전은 로그인과 서버가 없습니다.
+이전 버전이 보이면 갤럭시 Chrome에서 페이지를 새로고침하거나 탭을 완전히 닫고 다시 엽니다. 서비스 워커 캐시 이름을 변경해 이전 파일은 자동 정리됩니다.
 
-- 여행 정보와 지출: 브라우저 `localStorage`
-- 영수증 사진: 브라우저 `IndexedDB`
+## 저장 방식
 
-따라서 다른 휴대폰과 자동 공유되지 않으며, 브라우저 데이터를 삭제하면 기록도 사라집니다.
-다음 단계에서 Supabase를 연결하면 여러 명이 같은 장부를 함께 사용할 수 있습니다.
+- 여행 이름과 기간: Appwrite `trips`
+- 참여자: Appwrite `participants`
+- 지출: Appwrite `expenses`
+- 영수증: Appwrite Storage `receipts`
+- 이 기기의 사용자 선택: 각 브라우저 `localStorage`
