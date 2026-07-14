@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=20260714g" />
+  <link rel="stylesheet" href="./styles.css?v=20260714i" />
   <title>여행 가계부</title>
 </head>
 <body>
@@ -33,6 +33,23 @@
             <p class="hero-sub" id="homePeriod">여행 정보를 설정해줘</p>
           </div>
           <div class="hero-badge" id="memberCount">0명</div>
+        </article>
+
+        <article class="home-user-card" id="homeUserCard">
+          <div class="home-user-profile">
+            <span class="home-user-avatar" id="homeUserAvatar">?</span>
+            <div class="home-user-copy">
+              <span>내 정산 기준</span>
+              <strong id="homeUserName">사용자를 선택해줘</strong>
+              <small>결제액과 부담액이 선택한 사람 기준으로 보여</small>
+            </div>
+          </div>
+          <label class="home-user-select-wrap">
+            <span class="visually-hidden">현재 사용자 선택</span>
+            <select id="homeMeSelect" aria-label="현재 사용자 선택">
+              <option value="">사용자 선택</option>
+            </select>
+          </label>
         </article>
 
         <div class="summary-grid">
@@ -200,9 +217,11 @@
           </section>
 
           <div id="receiptPreviewWrap" class="receipt-preview hidden">
-            <img id="receiptPreview" alt="영수증 미리보기" />
+            <div class="receipt-preview-scroll" aria-label="영수증 사진 미리보기">
+              <img id="receiptPreview" alt="영수증 미리보기" />
+            </div>
             <div class="receipt-preview-footer">
-              <span>첨부한 영수증</span>
+              <span>긴 영수증은 위아래로 스크롤해서 확인할 수 있어</span>
               <button type="button" class="danger-link" id="removeReceiptBtn">사진 삭제</button>
             </div>
           </div>
@@ -348,6 +367,6 @@
       window.__travelLedgerBootError(reason);
     });
   </script>
-  <script src="./app.js?v=20260714g"></script>
+  <script src="./app.js?v=20260714i"></script>
 </body>
 </html>

@@ -110,6 +110,125 @@ button { cursor: pointer; }
   font-size: 12px;
 }
 
+
+.home-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 12px;
+  padding: 14px 15px;
+  border: 1px solid #E4E8F2;
+  border-radius: 19px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(36,49,92,.055);
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.home-user-card.needs-selection {
+  border-color: #AEB9FF;
+  background: #F8F9FF;
+  box-shadow: 0 8px 24px rgba(79,107,255,.09);
+}
+
+.home-user-profile {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 11px;
+}
+
+.home-user-avatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  color: white;
+  background: linear-gradient(135deg, #667CFF, #785CF3);
+  box-shadow: 0 7px 16px rgba(79,107,255,.22);
+  font-size: 16px;
+  font-weight: 850;
+}
+
+.home-user-card.needs-selection .home-user-avatar {
+  color: var(--primary);
+  background: var(--surface-soft);
+  box-shadow: none;
+}
+
+.home-user-copy {
+  min-width: 0;
+}
+
+.home-user-copy > span,
+.home-user-copy > strong,
+.home-user-copy > small {
+  display: block;
+}
+
+.home-user-copy > span {
+  margin-bottom: 2px;
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.home-user-copy > strong {
+  overflow: hidden;
+  margin-bottom: 2px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.home-user-copy > small {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+}
+
+.home-user-select-wrap {
+  flex: 0 0 126px;
+}
+
+.home-user-select-wrap select {
+  min-height: 42px;
+  padding: 0 34px 0 11px;
+  border-color: #DCE2F0;
+  border-radius: 13px;
+  background-color: #F8F9FC;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.home-user-card.needs-selection .home-user-select-wrap select {
+  border-color: #9EACFF;
+  color: var(--primary);
+  background-color: white;
+}
+
+@media (max-width: 390px) {
+  .home-user-card {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 11px;
+  }
+
+  .home-user-select-wrap {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .home-user-copy > small {
+    white-space: normal;
+    line-height: 1.4;
+  }
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -574,12 +693,32 @@ textarea {
   background: #F7F8FC;
 }
 
+.receipt-preview-scroll {
+  max-height: min(54vh, 520px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 13px;
+  background:
+    linear-gradient(45deg, #F2F3F6 25%, transparent 25%),
+    linear-gradient(-45deg, #F2F3F6 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #F2F3F6 75%),
+    linear-gradient(-45deg, transparent 75%, #F2F3F6 75%);
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  background-size: 12px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
 .receipt-preview img {
   display: block;
   width: 100%;
-  max-height: 320px;
-  object-fit: contain;
+  height: auto;
+  max-height: none;
+  object-fit: initial;
   border-radius: 13px;
+  background: white;
+  image-rendering: auto;
+  touch-action: pan-y pinch-zoom;
 }
 
 .receipt-preview-footer {
@@ -589,7 +728,12 @@ textarea {
   gap: 12px;
   padding: 9px 2px 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.receipt-preview-footer > span {
+  min-width: 0;
 }
 
 .save-expense-button {
@@ -868,13 +1012,28 @@ textarea {
     animation: none;
   }
 }
-.detail-receipt {
-  width: 100%;
-  max-height: 420px;
+.detail-receipt-scroll {
+  max-height: min(62vh, 640px);
+  overflow-x: hidden;
+  overflow-y: auto;
   margin-top: 14px;
-  object-fit: contain;
+  border: 1px solid #E7EAF2;
   border-radius: 16px;
   background: #F5F6FA;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detail-receipt {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: initial;
+  border-radius: 15px;
+  background: white;
+  image-rendering: auto;
+  touch-action: pan-y pinch-zoom;
 }
 .detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
 

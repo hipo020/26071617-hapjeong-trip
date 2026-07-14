@@ -254,6 +254,18 @@ function setMeId(id) {
   else localStorage.removeItem(ME_KEY);
 }
 
+function applyMeSelection(id) {
+  setMeId(id);
+
+  const homeSelect = $("#homeMeSelect");
+  const settingsSelect = $("#meSelect");
+
+  if (homeSelect) homeSelect.value = id;
+  if (settingsSelect) settingsSelect.value = id;
+
+  renderHome();
+}
+
 function setSyncStatus(text, status = "") {
   const element = $("#syncStatus");
   element.textContent = text;
@@ -597,9 +609,25 @@ function expenseCardHtml(expense) {
 function renderHome() {
   const total = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const summary = calculateSummary();
-  const me = summary.find((person) => person.id === getMeId());
+  const meId = getMeId();
+  const me = summary.find((person) => person.id === meId);
+  const selectedParticipant = state.participants.find((participant) => participant.id === meId);
 
   $("#homeTotal").textContent = formatWon(total);
+
+  $("#homeUserCard").classList.toggle("needs-selection", !selectedParticipant);
+  $("#homeUserAvatar").textContent = selectedParticipant
+    ? Array.from(selectedParticipant.name.trim())[0] || "?"
+    : "?";
+  $("#homeUserName").textContent = selectedParticipant
+    ? `${selectedParticipant.name} 기준으로 보는 중`
+    : state.participants.length
+      ? "사용자를 선택해줘"
+      : "참여자를 먼저 추가해줘";
+
+  $("#homeMeSelect").disabled = state.participants.length === 0;
+  $("#homeMeSelect").value = selectedParticipant ? selectedParticipant.id : "";
+
   $("#myPaid").textContent = formatWon(me?.paid || 0);
   $("#myOwed").textContent = formatWon(me?.owed || 0);
 
@@ -696,6 +724,7 @@ function renderParticipantOptions({ selectedIds = null, existingSplits = null } 
   $("#expensePayer").innerHTML = options || '<option value="">참여자를 먼저 등록해줘</option>';
   $("#payerFilter").innerHTML = `<option value="">모든 결제자</option>${options}`;
   $("#meSelect").innerHTML = `<option value="">내 이름 선택</option>${options}`;
+  $("#homeMeSelect").innerHTML = `<option value="">사용자 선택</option>${options}`;
 
   if (state.participants.some((participant) => participant.id === currentPayer)) {
     $("#expensePayer").value = currentPayer;
@@ -707,6 +736,7 @@ function renderParticipantOptions({ selectedIds = null, existingSplits = null } 
     $("#payerFilter").value = currentPayerFilter;
   }
   $("#meSelect").value = getMeId();
+  $("#homeMeSelect").value = getMeId();
 
   const checkedSet = selectedIds
     ? new Set(selectedIds)
@@ -798,30 +828,99 @@ function resetExpenseForm() {
   renderParticipantOptions();
 }
 
-async function resizeImage(file) {
-  const image = await createImageBitmap(file);
-  const maxSide = 1400;
-  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(image.width * scale);
-  canvas.height = Math.round(image.height * scale);
-  canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
-  image.close();
-
-  const blob = await new Promise((resolve, reject) => {
+function canvasToJpegBlob(canvas, quality) {
+  return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (result) => result ? resolve(result) : reject(new Error("사진 압축에 실패했어.")),
+      (result) => result
+        ? resolve(result)
+        : reject(new Error("사진 압축에 실패했어.")),
       "image/jpeg",
-      0.76,
+      quality,
     );
   });
+}
+
+async function resizeImage(file) {
+  let image;
+
+  try {
+    image = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch {
+    image = await createImageBitmap(file);
+  }
+
+  const originalWidth = image.width;
+  const originalHeight = image.height;
+  const aspectRatio = originalHeight / Math.max(originalWidth, 1);
+  const isLongReceipt = aspectRatio >= 2.6;
+
+  // 긴 영수증은 기존처럼 '가장 긴 변 1400px'로 줄이면
+  // 가로 폭이 지나치게 작아져 글자가 뭉개진다.
+  const maxWidth = isLongReceipt ? 1600 : 1800;
+  const maxHeight = isLongReceipt ? 9000 : 2200;
+  const maxCanvasArea = 18_000_000;
+
+  const widthScale = maxWidth / originalWidth;
+  const heightScale = maxHeight / originalHeight;
+  const areaScale = Math.sqrt(
+    maxCanvasArea / Math.max(originalWidth * originalHeight, 1),
+  );
+
+  const scale = Math.min(1, widthScale, heightScale, areaScale);
+  let targetWidth = Math.max(1, Math.round(originalWidth * scale));
+  let targetHeight = Math.max(1, Math.round(originalHeight * scale));
+
+  const drawCanvas = (width, height) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) {
+      throw new Error("사진 처리용 화면을 만들지 못했어.");
+    }
+
+    // PNG나 스크린샷의 투명 배경이 JPEG 변환 후 검게 변하는 것을 방지한다.
+    context.fillStyle = "#FFFFFF";
+    context.fillRect(0, 0, width, height);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(image, 0, 0, width, height);
+    return canvas;
+  };
+
+  let canvas = drawCanvas(targetWidth, targetHeight);
+  let blob = await canvasToJpegBlob(canvas, isLongReceipt ? 0.8 : 0.82);
+
+  // Appwrite 버킷 제한(5MB)보다 약간 작게 맞춘다.
+  const maxUploadBytes = 4.6 * 1024 * 1024;
+
+  if (blob.size > maxUploadBytes) {
+    blob = await canvasToJpegBlob(canvas, 0.66);
+  }
+
+  if (blob.size > maxUploadBytes) {
+    targetWidth = Math.max(1, Math.round(targetWidth * 0.82));
+    targetHeight = Math.max(1, Math.round(targetHeight * 0.82));
+    canvas = drawCanvas(targetWidth, targetHeight);
+    blob = await canvasToJpegBlob(canvas, 0.64);
+  }
+
+  image.close();
+
+  if (blob.size > maxUploadBytes) {
+    throw new Error("사진이 너무 길거나 커서 압축하지 못했어. 화면을 두 장으로 나눠서 올려줘.");
+  }
 
   const safeBaseName = String(file.name || "receipt")
     .replace(/\.[^.]+$/, "")
     .replace(/[^a-zA-Z0-9가-힣_-]/g, "_")
     .slice(0, 40) || "receipt";
 
-  return new File([blob], `${safeBaseName}.jpg`, { type: "image/jpeg" });
+  return new File([blob], `${safeBaseName}.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
 }
 
 function updateReceiptSelectionText(message, hasFile = false) {
@@ -841,7 +940,11 @@ async function handleReceiptFile(file) {
     revokePendingReceiptUrl();
     pendingReceiptUrl = URL.createObjectURL(pendingReceiptFile);
     showReceiptPreview(pendingReceiptUrl);
-    updateReceiptSelectionText(`${file.name || "영수증 사진"} 선택됨`, true);
+    const preparedSizeMb = (pendingReceiptFile.size / 1024 / 1024).toFixed(1);
+    updateReceiptSelectionText(
+      `${file.name || "영수증 사진"} · 업로드용 ${preparedSizeMb}MB`,
+      true,
+    );
   } catch (error) {
     alert(readableError(error));
   } finally {
@@ -1108,7 +1211,11 @@ function openExpenseDetail(expenseId) {
       </div>
       ${expense.memo ? `<div class="detail-row"><span>메모</span><strong>${escapeHtml(expense.memo)}</strong></div>` : ""}
     </div>
-    ${expense.receiptFileId ? `<img class="detail-receipt" src="${receiptViewUrl(expense.receiptFileId)}" alt="영수증 사진" />` : ""}
+    ${expense.receiptFileId ? `
+      <div class="detail-receipt-scroll" aria-label="영수증 사진">
+        <img class="detail-receipt" src="${receiptViewUrl(expense.receiptFileId)}" alt="영수증 사진" />
+      </div>
+    ` : ""}
     <div class="detail-actions">
       <button class="secondary-button" data-edit-expense="${expense.id}">수정</button>
       <button class="danger-button" data-delete-expense="${expense.id}">삭제</button>
@@ -1271,9 +1378,12 @@ function bindEvents() {
   $("#settingsForm").addEventListener("submit", saveTripSettings);
 
   $("#meSelect").addEventListener("change", (event) => {
-    setMeId(event.target.value);
-    renderHome();
+    applyMeSelection(event.target.value);
     renderSettingsValues();
+  });
+
+  $("#homeMeSelect").addEventListener("change", (event) => {
+    applyMeSelection(event.target.value);
   });
 
   $("#addParticipantBtn").addEventListener("click", addParticipant);
