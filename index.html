@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=20260714e" />
+  <link rel="stylesheet" href="./styles.css?v=20260714g" />
   <title>여행 가계부</title>
 </head>
 <body>
@@ -20,7 +20,7 @@
       </div>
       <div class="topbar-actions">
         <span class="sync-status" id="syncStatus">연결 중</span>
-        <button class="icon-button" id="openSettingsBtn" aria-label="여행 설정">⚙️</button>
+        <button class="icon-button top-settings-button" id="openSettingsBtn" aria-label="여행 설정">⚙️</button>
       </div>
     </header>
 
@@ -107,45 +107,47 @@
         <form id="expenseForm" class="form-card">
           <input type="hidden" id="editingExpenseId" />
 
-          <label>
-            <span>사용 내역</span>
+          <label class="form-field">
+            <span class="field-label">사용 내역</span>
             <input id="expenseTitle" required maxlength="40" placeholder="예: 바비큐 장보기" />
           </label>
 
-          <label>
-            <span>금액</span>
+          <label class="form-field">
+            <span class="field-label">금액</span>
             <div class="money-input">
               <input id="expenseAmount" required inputmode="numeric" placeholder="0" />
               <b>원</b>
             </div>
           </label>
 
-          <div class="form-grid">
-            <label>
-              <span>날짜</span>
+          <div class="form-grid form-field">
+            <label class="form-field compact-field">
+              <span class="field-label">날짜</span>
               <input id="expenseDate" type="date" required />
             </label>
-            <label>
-              <span>카테고리</span>
+            <label class="form-field compact-field">
+              <span class="field-label">카테고리</span>
               <select id="expenseCategory"></select>
             </label>
           </div>
 
-          <label>
-            <span>결제한 사람</span>
+          <label class="form-field">
+            <span class="field-label">결제한 사람</span>
             <select id="expensePayer" required></select>
           </label>
 
-          <fieldset>
-            <legend>비용을 나눌 사람</legend>
-            <div class="participant-actions">
-              <button type="button" class="text-button" id="selectAllParticipants">전체 선택</button>
-              <button type="button" class="text-button muted" id="clearParticipants">선택 해제</button>
+          <fieldset class="form-field form-section">
+            <div class="field-heading">
+              <legend>비용을 나눌 사람</legend>
+              <div class="participant-actions">
+                <button type="button" class="mini-action active" id="selectAllParticipants">전체 선택</button>
+                <button type="button" class="mini-action" id="clearParticipants">선택 해제</button>
+              </div>
             </div>
             <div id="participantChecklist" class="chip-grid"></div>
           </fieldset>
 
-          <fieldset>
+          <fieldset class="form-field form-section">
             <legend>나누는 방식</legend>
             <div class="segment-control">
               <label>
@@ -161,22 +163,52 @@
             <p id="splitHint" class="hint">선택한 사람끼리 1원 단위까지 자동으로 나눠.</p>
           </fieldset>
 
-          <label>
-            <span>메모 <small>선택</small></span>
+          <label class="form-field">
+            <span class="field-label-row">
+              <span class="field-label">메모</span>
+              <small>선택 사항</small>
+            </span>
             <textarea id="expenseMemo" rows="3" maxlength="160" placeholder="예: 술값은 제외한 장보기 비용"></textarea>
           </label>
 
-          <label>
-            <span>영수증 사진 <small>선택 · 1장</small></span>
-            <input id="receiptInput" type="file" accept="image/*" capture="environment" />
-          </label>
+          <section class="form-field receipt-field" aria-labelledby="receiptLabel">
+            <span class="field-label-row">
+              <span class="field-label" id="receiptLabel">영수증 사진</span>
+              <small>선택 · 1장</small>
+            </span>
+
+            <div class="receipt-picker-actions">
+              <button type="button" class="receipt-option" id="openReceiptCameraBtn">
+                <span class="receipt-option-icon">📷</span>
+                <span class="receipt-option-copy">
+                  <strong>카메라로 촬영</strong>
+                  <small>영수증을 바로 찍기</small>
+                </span>
+              </button>
+              <button type="button" class="receipt-option" id="openReceiptGalleryBtn">
+                <span class="receipt-option-icon">🖼️</span>
+                <span class="receipt-option-copy">
+                  <strong>갤러리에서 선택</strong>
+                  <small>저장된 사진 불러오기</small>
+                </span>
+              </button>
+            </div>
+
+            <input id="receiptCameraInput" class="visually-hidden" type="file" accept="image/*" capture="environment" />
+            <input id="receiptInput" class="visually-hidden" type="file" accept="image/*" />
+            <p class="receipt-selection-text" id="receiptSelectionText">사진을 추가하지 않았어</p>
+          </section>
+
           <div id="receiptPreviewWrap" class="receipt-preview hidden">
             <img id="receiptPreview" alt="영수증 미리보기" />
-            <button type="button" class="danger-link" id="removeReceiptBtn">사진 삭제</button>
+            <div class="receipt-preview-footer">
+              <span>첨부한 영수증</span>
+              <button type="button" class="danger-link" id="removeReceiptBtn">사진 삭제</button>
+            </div>
           </div>
 
           <p id="formError" class="form-error hidden"></p>
-          <button type="submit" class="primary-button full" id="saveExpenseBtn">지출 저장하기</button>
+          <button type="submit" class="primary-button full save-expense-button" id="saveExpenseBtn">지출 저장하기</button>
         </form>
       </section>
 
@@ -223,6 +255,9 @@
       <button class="nav-add" data-go="add" aria-label="지출 추가">＋</button>
       <button class="nav-item" data-go="settlement">
         <span>₩</span><b>정산</b>
+      </button>
+      <button class="nav-item" id="openSettingsNavBtn" aria-label="여행 설정">
+        <span>⚙</span><b>설정</b>
       </button>
     </nav>
   </div>
@@ -313,6 +348,6 @@
       window.__travelLedgerBootError(reason);
     });
   </script>
-  <script src="./app.js?v=20260714e"></script>
+  <script src="./app.js?v=20260714g"></script>
 </body>
 </html>

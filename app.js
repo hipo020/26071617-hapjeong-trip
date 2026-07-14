@@ -782,11 +782,13 @@ function resetExpenseForm() {
   $("#receiptPreviewWrap").classList.add("hidden");
   $("#receiptPreview").removeAttribute("src");
   $("#receiptInput").value = "";
+  $("#receiptCameraInput").value = "";
   $("#formError").classList.add("hidden");
   pendingReceiptFile = null;
   existingReceiptId = "";
   removeExistingReceipt = false;
   revokePendingReceiptUrl();
+  updateReceiptSelectionText("사진을 추가하지 않았어", false);
 
   $$('input[name="splitMode"]').forEach((input) => {
     input.checked = input.value === "equal";
@@ -820,6 +822,31 @@ async function resizeImage(file) {
     .slice(0, 40) || "receipt";
 
   return new File([blob], `${safeBaseName}.jpg`, { type: "image/jpeg" });
+}
+
+function updateReceiptSelectionText(message, hasFile = false) {
+  const element = $("#receiptSelectionText");
+  if (!element) return;
+  element.textContent = message;
+  element.classList.toggle("has-file", hasFile);
+}
+
+async function handleReceiptFile(file) {
+  if (!file) return;
+
+  showLoading("영수증 사진 준비하는 중…");
+  try {
+    pendingReceiptFile = await resizeImage(file);
+    removeExistingReceipt = false;
+    revokePendingReceiptUrl();
+    pendingReceiptUrl = URL.createObjectURL(pendingReceiptFile);
+    showReceiptPreview(pendingReceiptUrl);
+    updateReceiptSelectionText(`${file.name || "영수증 사진"} 선택됨`, true);
+  } catch (error) {
+    alert(readableError(error));
+  } finally {
+    hideLoading();
+  }
 }
 
 function showReceiptPreview(source) {
@@ -1050,9 +1077,14 @@ function openExpenseDetail(expenseId) {
   if (!expense) return;
 
   const category = categoryInfo(expense.category);
-  const splitText = expense.splits
-    .map((split) => `${participantName(split.participantId)} ${formatWon(split.amount)}`)
-    .join(", ");
+  const splitCards = expense.splits
+    .map((split) => `
+      <div class="detail-split-item">
+        <strong>${escapeHtml(participantName(split.participantId))}</strong>
+        <span>${formatWon(split.amount)}</span>
+      </div>
+    `)
+    .join("");
 
   $("#expenseDetailContent").innerHTML = `
     <div class="dialog-heading">
@@ -1067,7 +1099,13 @@ function openExpenseDetail(expenseId) {
       <div class="detail-row"><span>날짜</span><strong>${escapeHtml(expense.date)}</strong></div>
       <div class="detail-row"><span>결제자</span><strong>${escapeHtml(participantName(expense.payerId))}</strong></div>
       <div class="detail-row"><span>정산 방식</span><strong>${expense.splitMode === "custom" ? "직접 입력" : "균등 분배"}</strong></div>
-      <div class="detail-row"><span>부담자</span><strong>${escapeHtml(splitText)}</strong></div>
+      <div class="detail-split-section">
+        <div class="detail-split-heading">
+          <span>부담자</span>
+          <small>${expense.splits.length}명</small>
+        </div>
+        <div class="detail-split-list">${splitCards}</div>
+      </div>
       ${expense.memo ? `<div class="detail-row"><span>메모</span><strong>${escapeHtml(expense.memo)}</strong></div>` : ""}
     </div>
     ${expense.receiptFileId ? `<img class="detail-receipt" src="${receiptViewUrl(expense.receiptFileId)}" alt="영수증 사진" />` : ""}
@@ -1118,6 +1156,10 @@ function editExpense(expenseId) {
   removeExistingReceipt = false;
   revokePendingReceiptUrl();
   showReceiptPreview(existingReceiptId ? receiptViewUrl(existingReceiptId) : "");
+  updateReceiptSelectionText(
+    existingReceiptId ? "기존 영수증 사진이 첨부되어 있어" : "사진을 추가하지 않았어",
+    Boolean(existingReceiptId),
+  );
 }
 
 async function deleteExpense(expenseId) {
@@ -1213,10 +1255,13 @@ function bindEvents() {
     }
   });
 
-  $("#openSettingsBtn").addEventListener("click", () => {
+  const openSettingsDialog = () => {
     renderSettingsValues();
     $("#settingsDialog").showModal();
-  });
+  };
+
+  $("#openSettingsBtn").addEventListener("click", openSettingsDialog);
+  $("#openSettingsNavBtn").addEventListener("click", openSettingsDialog);
 
   $("#closeSettingsBtn").addEventListener("click", () => {
     $("#settingsDialog").close();
@@ -1271,30 +1316,30 @@ function bindEvents() {
     event.target.value = value ? value.toLocaleString("ko-KR") : "";
   });
 
-  $("#receiptInput").addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  $("#openReceiptCameraBtn").addEventListener("click", () => {
+    $("#receiptCameraInput").click();
+  });
 
-    showLoading("영수증 사진 준비하는 중…");
-    try {
-      pendingReceiptFile = await resizeImage(file);
-      removeExistingReceipt = false;
-      revokePendingReceiptUrl();
-      pendingReceiptUrl = URL.createObjectURL(pendingReceiptFile);
-      showReceiptPreview(pendingReceiptUrl);
-    } catch (error) {
-      alert(readableError(error));
-    } finally {
-      hideLoading();
-    }
+  $("#openReceiptGalleryBtn").addEventListener("click", () => {
+    $("#receiptInput").click();
+  });
+
+  ["#receiptInput", "#receiptCameraInput"].forEach((selector) => {
+    $(selector).addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      await handleReceiptFile(file);
+      event.target.value = "";
+    });
   });
 
   $("#removeReceiptBtn").addEventListener("click", () => {
     pendingReceiptFile = null;
     removeExistingReceipt = Boolean(existingReceiptId);
     $("#receiptInput").value = "";
+    $("#receiptCameraInput").value = "";
     revokePendingReceiptUrl();
     showReceiptPreview("");
+    updateReceiptSelectionText("사진을 추가하지 않았어", false);
   });
 
   $("#expenseForm").addEventListener("submit", saveExpenseFromForm);
