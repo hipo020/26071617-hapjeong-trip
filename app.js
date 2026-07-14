@@ -1,21 +1,3 @@
-const AppwriteSDK = window.Appwrite;
-
-if (!AppwriteSDK) {
-  throw new Error("Appwrite 공식 Web SDK를 불러오지 못했어. 새 배포가 반영됐는지 확인해줘.");
-}
-
-const {
-  Client,
-  ID,
-  Query,
-  Storage,
-  TablesDB,
-} = AppwriteSDK;
-
-if (!Client || !TablesDB || !Storage || !ID || !Query) {
-  throw new Error("Appwrite SDK 구성요소를 불러오지 못했어. 페이지를 새로고침해줘.");
-}
-
 const CONFIG = Object.freeze({
   endpoint: "https://sgp.cloud.appwrite.io/v1",
   projectId: "6a54f05f000bc614cd40",
@@ -29,6 +11,165 @@ const CONFIG = Object.freeze({
   tripRowId: "main-trip",
 });
 
+const APPWRITE_RESPONSE_FORMAT = "1.9.5";
+const PUBLIC_ROW_PERMISSIONS = [
+  'read("any")',
+  'update("any")',
+  'delete("any")',
+];
+
+function generateId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `id-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`.slice(0, 36);
+}
+
+async function appwriteRequest(path, {
+  method = "GET",
+  data,
+  formData,
+} = {}) {
+  const headers = {
+    "X-Appwrite-Project": CONFIG.projectId,
+    "X-Appwrite-Response-Format": APPWRITE_RESPONSE_FORMAT,
+  };
+
+  const options = {
+    method,
+    headers,
+    mode: "cors",
+    credentials: "omit",
+  };
+
+  if (formData) {
+    options.body = formData;
+  } else if (data !== undefined) {
+    headers["Content-Type"] = "application/json";
+    options.body = JSON.stringify(data);
+  }
+
+  let response;
+  try {
+    response = await fetch(`${CONFIG.endpoint}${path}`, options);
+  } catch (networkError) {
+    const error = new Error(networkError?.message || "Failed to fetch");
+    error.code = 0;
+    error.type = "network_error";
+    throw error;
+  }
+
+  if (response.status === 204) return null;
+
+  const contentType = response.headers.get("content-type") || "";
+  let payload = null;
+
+  if (contentType.includes("application/json")) {
+    payload = await response.json().catch(() => null);
+  } else {
+    const text = await response.text().catch(() => "");
+    payload = text ? { message: text } : null;
+  }
+
+  if (!response.ok) {
+    const error = new Error(
+      payload?.message || `Appwrite 요청 실패 (${response.status})`,
+    );
+    error.code = Number(payload?.code || response.status || 0);
+    error.type = String(payload?.type || "");
+    error.response = payload;
+    throw error;
+  }
+
+  return payload;
+}
+
+function tableRowsPath(tableId) {
+  return `/tablesdb/${encodeURIComponent(CONFIG.databaseId)}/tables/${encodeURIComponent(tableId)}/rows`;
+}
+
+async function getRow(tableId, rowId) {
+  return appwriteRequest(
+    `${tableRowsPath(tableId)}/${encodeURIComponent(rowId)}`,
+  );
+}
+
+async function listRows(tableId, limit = 100) {
+  const params = new URLSearchParams();
+  params.append(
+    "queries[]",
+    JSON.stringify({ method: "limit", values: [limit] }),
+  );
+  params.set("total", "false");
+  params.set("ttl", "0");
+
+  return appwriteRequest(`${tableRowsPath(tableId)}?${params.toString()}`);
+}
+
+async function createRow(tableId, rowId, rowData) {
+  return appwriteRequest(tableRowsPath(tableId), {
+    method: "POST",
+    data: {
+      rowId,
+      data: rowData,
+      permissions: PUBLIC_ROW_PERMISSIONS,
+    },
+  });
+}
+
+async function updateRow(tableId, rowId, rowData) {
+  return appwriteRequest(
+    `${tableRowsPath(tableId)}/${encodeURIComponent(rowId)}`,
+    {
+      method: "PATCH",
+      data: { data: rowData },
+    },
+  );
+}
+
+async function upsertRow(tableId, rowId, rowData) {
+  return appwriteRequest(
+    `${tableRowsPath(tableId)}/${encodeURIComponent(rowId)}`,
+    {
+      method: "PUT",
+      data: {
+        data: rowData,
+        permissions: PUBLIC_ROW_PERMISSIONS,
+      },
+    },
+  );
+}
+
+async function deleteRow(tableId, rowId) {
+  return appwriteRequest(
+    `${tableRowsPath(tableId)}/${encodeURIComponent(rowId)}`,
+    { method: "DELETE" },
+  );
+}
+
+async function uploadReceipt(file) {
+  const formData = new FormData();
+  formData.append("fileId", generateId());
+  formData.append("file", file, file.name || "receipt.jpg");
+  PUBLIC_ROW_PERMISSIONS.forEach((permission) => {
+    formData.append("permissions[]", permission);
+  });
+
+  return appwriteRequest(
+    `/storage/buckets/${encodeURIComponent(CONFIG.bucketId)}/files`,
+    {
+      method: "POST",
+      formData,
+    },
+  );
+}
+
+async function deleteReceipt(fileId) {
+  return appwriteRequest(
+    `/storage/buckets/${encodeURIComponent(CONFIG.bucketId)}/files/${encodeURIComponent(fileId)}`,
+    { method: "DELETE" },
+  );
+}
+
+
 const ME_KEY = "travel-budget-me-id-v2";
 const POLL_INTERVAL_MS = 10000;
 
@@ -41,13 +182,6 @@ const CATEGORIES = [
   { id: "activity", label: "놀거리", icon: "🎲" },
   { id: "etc", label: "기타", icon: "🧾" },
 ];
-
-const client = new Client()
-  .setEndpoint(CONFIG.endpoint)
-  .setProject(CONFIG.projectId);
-
-const tablesDB = new TablesDB(client);
-const storage = new Storage(client);
 
 
 let state = {
@@ -162,7 +296,7 @@ function readableError(error) {
     return "Appwrite 프로젝트·데이터베이스·테이블 또는 영수증 버킷 ID를 찾지 못했어. 설정값을 확인해줘.";
   }
   if (raw.includes("Failed to fetch") || raw.includes("NetworkError")) {
-    return "Appwrite 연결이 차단됐어. Web platform의 Hostname이 26071617-hapjeong-trip.vercel.app인지 확인해줘.";
+    return "Appwrite 연결이 차단됐어. Web platform Hostname과 테이블 권한을 확인해줘.";
   }
   return raw;
 }
@@ -182,11 +316,10 @@ function receiptViewUrl(fileId) {
 
 async function fetchTrip() {
   try {
-    const row = await tablesDB.getRow({
-      databaseId: CONFIG.databaseId,
-      tableId: CONFIG.tables.trips,
-      rowId: CONFIG.tripRowId,
-    });
+    const row = await getRow(
+      CONFIG.tables.trips,
+      CONFIG.tripRowId,
+    );
     return {
       id: row.$id,
       name: String(row.name || ""),
@@ -202,13 +335,7 @@ async function fetchTrip() {
 }
 
 async function fetchParticipants() {
-  const result = await tablesDB.listRows({
-    databaseId: CONFIG.databaseId,
-    tableId: CONFIG.tables.participants,
-    queries: [Query.limit(100)],
-    total: false,
-    ttl: 0,
-  });
+  const result = await listRows(CONFIG.tables.participants, 100);
 
   return (result.rows || [])
     .map((row) => ({
@@ -221,13 +348,7 @@ async function fetchParticipants() {
 }
 
 async function fetchExpenses() {
-  const result = await tablesDB.listRows({
-    databaseId: CONFIG.databaseId,
-    tableId: CONFIG.tables.expenses,
-    queries: [Query.limit(100)],
-    total: false,
-    ttl: 0,
-  });
+  const result = await listRows(CONFIG.tables.expenses, 100);
 
   return (result.rows || [])
     .map((row) => {
@@ -758,16 +879,15 @@ async function saveTripSettings(event) {
   showLoading("여행 정보 저장하는 중…");
 
   try {
-    await tablesDB.upsertRow({
-      databaseId: CONFIG.databaseId,
-      tableId: CONFIG.tables.trips,
-      rowId: CONFIG.tripRowId,
-      data: {
+    await upsertRow(
+      CONFIG.tables.trips,
+      CONFIG.tripRowId,
+      {
         name,
         startDate: startDate || null,
         endDate: endDate || null,
       },
-    });
+    );
     await loadSharedData({ silent: true, force: true });
     $("#settingsDialog").close();
     showToast("여행 정보를 저장했어.");
@@ -791,12 +911,11 @@ async function addParticipant() {
 
   showLoading("참여자 추가하는 중…");
   try {
-    const row = await tablesDB.createRow({
-      databaseId: CONFIG.databaseId,
-      tableId: CONFIG.tables.participants,
-      rowId: ID.unique(),
-      data: { name },
-    });
+    const row = await createRow(
+      CONFIG.tables.participants,
+      generateId(),
+      { name },
+    );
     input.value = "";
     if (!getMeId() && state.participants.length === 0) setMeId(row.$id);
     await loadSharedData({ silent: true, force: true });
@@ -825,11 +944,7 @@ async function deleteParticipant(participantId) {
 
   showLoading("참여자 삭제하는 중…");
   try {
-    await tablesDB.deleteRow({
-      databaseId: CONFIG.databaseId,
-      tableId: CONFIG.tables.participants,
-      rowId: participantId,
-    });
+    await deleteRow(CONFIG.tables.participants, participantId);
     if (getMeId() === participantId) setMeId("");
     await loadSharedData({ silent: true, force: true });
     renderSettingsValues();
@@ -864,11 +979,7 @@ async function saveExpenseFromForm(event) {
 
   try {
     if (pendingReceiptFile) {
-      const uploaded = await storage.createFile({
-        bucketId: CONFIG.bucketId,
-        fileId: ID.unique(),
-        file: pendingReceiptFile,
-      });
+      const uploaded = await uploadReceipt(pendingReceiptFile);
       uploadedFileId = uploaded.$id;
       receiptFileId = uploaded.$id;
     }
@@ -894,27 +1005,22 @@ async function saveExpenseFromForm(event) {
     }
 
     if (existing) {
-      await tablesDB.updateRow({
-        databaseId: CONFIG.databaseId,
-        tableId: CONFIG.tables.expenses,
-        rowId: existing.id,
-        data: { dataJson },
-      });
+      await updateRow(
+        CONFIG.tables.expenses,
+        existing.id,
+        { dataJson },
+      );
     } else {
-      await tablesDB.createRow({
-        databaseId: CONFIG.databaseId,
-        tableId: CONFIG.tables.expenses,
-        rowId: ID.unique(),
-        data: { dataJson },
-      });
+      await createRow(
+        CONFIG.tables.expenses,
+        generateId(),
+        { dataJson },
+      );
     }
 
     if (oldReceiptId && oldReceiptId !== receiptFileId) {
       try {
-        await storage.deleteFile({
-          bucketId: CONFIG.bucketId,
-          fileId: oldReceiptId,
-        });
+        await deleteReceipt(oldReceiptId);
       } catch (deleteError) {
         console.warn("Old receipt cleanup failed", deleteError);
       }
@@ -927,10 +1033,7 @@ async function saveExpenseFromForm(event) {
   } catch (error) {
     if (uploadedFileId) {
       try {
-        await storage.deleteFile({
-          bucketId: CONFIG.bucketId,
-          fileId: uploadedFileId,
-        });
+        await deleteReceipt(uploadedFileId);
       } catch {
         // Ignore cleanup failure.
       }
@@ -1023,18 +1126,11 @@ async function deleteExpense(expenseId) {
 
   showLoading("지출 삭제하는 중…");
   try {
-    await tablesDB.deleteRow({
-      databaseId: CONFIG.databaseId,
-      tableId: CONFIG.tables.expenses,
-      rowId: expense.id,
-    });
+    await deleteRow(CONFIG.tables.expenses, expense.id);
 
     if (expense.receiptFileId) {
       try {
-        await storage.deleteFile({
-          bucketId: CONFIG.bucketId,
-          fileId: expense.receiptFileId,
-        });
+        await deleteReceipt(expense.receiptFileId);
       } catch (deleteError) {
         console.warn("Receipt cleanup failed", deleteError);
       }
