@@ -1,15 +1,13 @@
 const AppwriteSDK = window.Appwrite;
 
 if (!AppwriteSDK) {
-  throw new Error("Appwrite SDK를 불러오지 못했어. 인터넷 연결을 확인하고 다시 불러와줘.");
+  throw new Error("Appwrite 공식 Web SDK를 불러오지 못했어. 새 배포가 반영됐는지 확인해줘.");
 }
 
 const {
-  Channel,
   Client,
   ID,
   Query,
-  Realtime,
   Storage,
   TablesDB,
 } = AppwriteSDK;
@@ -32,7 +30,7 @@ const CONFIG = Object.freeze({
 });
 
 const ME_KEY = "travel-budget-me-id-v2";
-const POLL_INTERVAL_MS = 30000;
+const POLL_INTERVAL_MS = 10000;
 
 const CATEGORIES = [
   { id: "food", label: "식비", icon: "🍽️" },
@@ -50,7 +48,7 @@ const client = new Client()
 
 const tablesDB = new TablesDB(client);
 const storage = new Storage(client);
-const realtime = Realtime ? new Realtime(client) : null;
+
 
 let state = {
   trip: { id: CONFIG.tripRowId, name: "", start: "", end: "" },
@@ -64,7 +62,6 @@ let existingReceiptId = "";
 let removeExistingReceipt = false;
 let toastTimer = null;
 let refreshTimer = null;
-let realtimeSubscription = null;
 let refreshQueued = false;
 let currentRequestCount = 0;
 
@@ -329,22 +326,10 @@ function scheduleRefresh() {
   refreshTimer = setTimeout(() => loadSharedData({ silent: true }), 450);
 }
 
-async function setupRealtime() {
-  if (!realtime || !Channel) return;
-  try {
-    realtimeSubscription = await realtime.subscribe(
-      [
-        Channel.tablesdb(CONFIG.databaseId).table(CONFIG.tables.trips).row(),
-        Channel.tablesdb(CONFIG.databaseId).table(CONFIG.tables.participants).row(),
-        Channel.tablesdb(CONFIG.databaseId).table(CONFIG.tables.expenses).row(),
-        Channel.bucket(CONFIG.bucketId).file(),
-      ],
-      () => scheduleRefresh(),
-    );
-  } catch (error) {
-    console.warn("Realtime connection unavailable; polling remains active.", error);
-  }
+function setupRealtime() {
+  // 기본 공동 저장을 안정적으로 확인한 뒤 실시간 기능을 추가할 예정이야.
 }
+
 
 function navigate(viewName) {
   $$(".view").forEach((view) => {
@@ -1244,7 +1229,7 @@ function bindEvents() {
 
   window.addEventListener("beforeunload", () => {
     if (realtimeSubscription?.unsubscribe) realtimeSubscription.unsubscribe();
-    if (realtime?.disconnect) realtime.disconnect();
+
     revokePendingReceiptUrl();
   });
 }
