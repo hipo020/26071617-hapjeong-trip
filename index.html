@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=20260714i" />
+  <link rel="stylesheet" href="./styles.css?v=20260714j" />
   <title>여행 가계부</title>
 </head>
 <body>
@@ -41,7 +41,7 @@
             <div class="home-user-copy">
               <span>내 정산 기준</span>
               <strong id="homeUserName">사용자를 선택해줘</strong>
-              <small>결제액과 부담액이 선택한 사람 기준으로 보여</small>
+              <small>선택한 사람 기준으로 정산 금액을 보여줘</small>
             </div>
           </div>
           <label class="home-user-select-wrap">
@@ -61,7 +61,7 @@
             <span>내 부담액</span>
             <strong id="myOwed">0원</strong>
           </article>
-          <article class="summary-card accent-card">
+          <article class="summary-card accent-card" id="myBalanceCard">
             <span id="myBalanceLabel">정산 상태</span>
             <strong id="myBalance">0원</strong>
           </article>
@@ -367,6 +367,6 @@
       window.__travelLedgerBootError(reason);
     });
   </script>
-  <script src="./app.js?v=20260714i"></script>
+  <script src="./app.js?v=20260714j"></script>
 </body>
 </html>

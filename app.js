@@ -637,6 +637,11 @@ function renderHome() {
       ? "설정에서 내 이름을 선택해줘"
       : "참여자를 먼저 추가해줘";
     $("#myBalance").className = "";
+    $("#myBalanceCard").classList.remove(
+      "balance-state-in",
+      "balance-state-out",
+      "balance-state-even",
+    );
   } else {
     const balance = me.balance;
     $("#myBalanceLabel").textContent = balance >= 0 ? "내가 받을 돈" : "내가 보낼 돈";
@@ -646,6 +651,10 @@ function renderHome() {
       : balance < 0
         ? "balance-negative"
         : "";
+
+    $("#myBalanceCard").classList.toggle("balance-state-in", balance > 0);
+    $("#myBalanceCard").classList.toggle("balance-state-out", balance < 0);
+    $("#myBalanceCard").classList.toggle("balance-state-even", balance === 0);
   }
 
   const recent = state.expenses.slice(0, 4);
