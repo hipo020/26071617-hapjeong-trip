@@ -2747,3 +2747,127 @@ textarea {
     animation: none;
   }
 }
+
+
+/* ======================================================
+   v2.17 bottom-right mystery trigger
+====================================================== */
+
+.header-easter-button {
+  display: none !important;
+}
+
+/* Leave enough room for the floating trigger near the end of each page. */
+.app-main,
+main {
+  padding-bottom: calc(132px + env(safe-area-inset-bottom));
+}
+
+.bottom-easter-button {
+  position: fixed;
+  right: max(10px, calc((100vw - 520px) / 2 + 10px));
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  z-index: 43;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.9);
+  border-radius: 14px;
+  color: #6752BE;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.98), transparent 34%),
+    linear-gradient(145deg, rgba(241,237,255,.96), rgba(255,228,241,.96));
+  box-shadow:
+    0 8px 20px rgba(80,62,157,.18),
+    inset 0 0 0 1px rgba(103,79,193,.05);
+  opacity: .9;
+  backdrop-filter: blur(8px);
+  transition: opacity .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+
+.bottom-easter-button::before {
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border: 1px solid rgba(137,105,221,.18);
+  border-radius: 17px;
+  content: "";
+  animation: bottom-mystery-ring 2.8s ease-out infinite;
+}
+
+.bottom-easter-button:hover,
+.bottom-easter-button:focus-visible {
+  opacity: 1;
+}
+
+.bottom-easter-button:active {
+  transform: scale(.9) rotate(-6deg);
+  box-shadow: 0 4px 11px rgba(80,62,157,.14);
+}
+
+.bottom-easter-question {
+  font-family: ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1;
+  animation: bottom-mystery-bounce 2.9s ease-in-out infinite;
+}
+
+.bottom-easter-spark {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  color: #A36FC9;
+  font-size: 8px;
+  animation: bottom-mystery-spark 1.9s ease-in-out infinite;
+}
+
+@keyframes bottom-mystery-ring {
+  0% {
+    opacity: .52;
+    transform: scale(.86);
+  }
+  72%, 100% {
+    opacity: 0;
+    transform: scale(1.22);
+  }
+}
+
+@keyframes bottom-mystery-bounce {
+  0%, 82%, 100% {
+    transform: translateY(0) rotate(0);
+  }
+  88% {
+    transform: translateY(-3px) rotate(-7deg);
+  }
+  94% {
+    transform: translateY(1px) rotate(5deg);
+  }
+}
+
+@keyframes bottom-mystery-spark {
+  0%, 100% {
+    opacity: .25;
+    transform: scale(.7) rotate(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12) rotate(24deg);
+  }
+}
+
+@media (max-width: 540px) {
+  .bottom-easter-button {
+    right: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottom-easter-button::before,
+  .bottom-easter-question,
+  .bottom-easter-spark {
+    animation: none;
+  }
+}

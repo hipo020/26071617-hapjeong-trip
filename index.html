@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=20260714r" />
+  <link rel="stylesheet" href="./styles.css?v=20260714s" />
   <title>여행 가계부</title>
 </head>
 <body>
@@ -39,16 +39,6 @@
         </form>
       </div>
       <div class="topbar-actions">
-        <button
-          type="button"
-          class="header-easter-button"
-          id="openCreatorEasterEggBtn"
-          aria-label="비밀 버튼"
-          title="?"
-        >
-          <span class="header-easter-spark" aria-hidden="true">✦</span>
-          <span aria-hidden="true">?</span>
-        </button>
         <span class="sync-status" id="syncStatus">연결 중…</span>
         <button class="icon-button top-settings-button" id="openSettingsBtn" aria-label="여행 설정">⚙️</button>
       </div>
@@ -315,6 +305,17 @@
       </section>
     </main>
 
+    <button
+      type="button"
+      class="bottom-easter-button"
+      id="openCreatorEasterEggBtn"
+      aria-label="비밀 버튼"
+      title="?"
+    >
+      <span class="bottom-easter-spark" aria-hidden="true">✦</span>
+      <span class="bottom-easter-question" aria-hidden="true">?</span>
+    </button>
+
     <nav class="bottom-nav" aria-label="주요 메뉴">
       <button class="nav-item active" data-go="home">
         <span>⌂</span><b>홈</b>
@@ -500,6 +501,6 @@
       window.__travelLedgerBootError(reason);
     });
   </script>
-  <script src="./app.js?v=20260714r"></script>
+  <script src="./app.js?v=20260714s"></script>
 </body>
 </html>
