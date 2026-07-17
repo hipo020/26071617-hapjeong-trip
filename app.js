@@ -1874,14 +1874,9 @@ function openCreatorDialog() {
   }
 }
 
-function closeCreatorDialog({ reopenSettings = true } = {}) {
+function closeCreatorDialog() {
   if ($("#creatorDialog").open) {
     $("#creatorDialog").close();
-  }
-
-  if (reopenSettings) {
-    renderSettingsValues();
-    $("#settingsDialog").showModal();
   }
 }
 

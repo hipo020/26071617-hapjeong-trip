@@ -2290,3 +2290,164 @@ textarea {
     min-height: 34px;
   }
 }
+
+
+/* ======================================================
+   v2.14 global creator easter egg
+====================================================== */
+
+/* The old settings-only trigger is intentionally removed. */
+.creator-easter-button {
+  display: none !important;
+}
+
+.global-easter-button {
+  position: fixed;
+  right: max(16px, calc((100vw - 520px) / 2 + 16px));
+  bottom: calc(89px + env(safe-area-inset-bottom));
+  z-index: 42;
+  display: grid;
+  place-items: center;
+  width: 45px;
+  height: 45px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.9);
+  border-radius: 16px;
+  color: #5E4CB3;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255,255,255,.98), transparent 31%),
+    linear-gradient(145deg, #F4EFFF, #FFDFF0);
+  box-shadow:
+    0 10px 25px rgba(77,62,153,.22),
+    inset 0 0 0 1px rgba(117,91,209,.06);
+  isolation: isolate;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.global-easter-button::before {
+  position: absolute;
+  inset: -5px;
+  z-index: -1;
+  border: 1px solid rgba(132,103,219,.17);
+  border-radius: 20px;
+  content: "";
+  animation: mystery-ring 2.7s ease-out infinite;
+}
+
+.global-easter-button:active {
+  transform: scale(.9) rotate(-5deg);
+  box-shadow: 0 5px 14px rgba(77,62,153,.18);
+}
+
+.global-easter-question {
+  font-family: ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 950;
+  line-height: 1;
+  text-shadow: 0 2px 0 rgba(255,255,255,.8);
+  animation: mystery-bounce 2.8s ease-in-out infinite;
+}
+
+.global-easter-spark {
+  position: absolute;
+  color: #956FD1;
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.global-easter-spark.spark-one {
+  top: 5px;
+  right: 6px;
+  animation: mystery-spark 2s ease-in-out infinite;
+}
+
+.global-easter-spark.spark-two {
+  bottom: 6px;
+  left: 6px;
+  animation: mystery-spark 2s .75s ease-in-out infinite;
+}
+
+@keyframes mystery-ring {
+  0% {
+    opacity: .6;
+    transform: scale(.86);
+  }
+  70%, 100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes mystery-bounce {
+  0%, 80%, 100% {
+    transform: translateY(0) rotate(0);
+  }
+  86% {
+    transform: translateY(-4px) rotate(-8deg);
+  }
+  93% {
+    transform: translateY(1px) rotate(6deg);
+  }
+}
+
+@keyframes mystery-spark {
+  0%, 100% {
+    opacity: .25;
+    transform: scale(.65) rotate(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(25deg);
+  }
+}
+
+.creator-original-image {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  width: min(270px, 76vw);
+  margin: 3px auto 2px;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 13px 28px rgba(45,36,83,.13);
+}
+
+.creator-original-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  background: white;
+}
+
+/* Prevent stale SVG styles from displaying anything. */
+.creator-sticker {
+  display: none !important;
+}
+
+.creator-made-badge {
+  margin-top: 10px;
+}
+
+.creator-kicker {
+  margin-top: 11px;
+}
+
+.creator-card h2 {
+  margin-bottom: 17px;
+}
+
+@media (max-width: 540px) {
+  .global-easter-button {
+    right: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-easter-button::before,
+  .global-easter-question,
+  .global-easter-spark {
+    animation: none;
+  }
+}

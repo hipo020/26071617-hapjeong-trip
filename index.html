@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=20260714o" />
+  <link rel="stylesheet" href="./styles.css?v=20260714p" />
   <title>여행 가계부</title>
 </head>
 <body>
@@ -293,6 +293,18 @@
       </section>
     </main>
 
+    <button
+      type="button"
+      class="global-easter-button"
+      id="openCreatorEasterEggBtn"
+      aria-label="비밀 버튼"
+      title="?"
+    >
+      <span class="global-easter-spark spark-one" aria-hidden="true">✦</span>
+      <span class="global-easter-question" aria-hidden="true">?</span>
+      <span class="global-easter-spark spark-two" aria-hidden="true">✧</span>
+    </button>
+
     <nav class="bottom-nav" aria-label="주요 메뉴">
       <button class="nav-item active" data-go="home">
         <span>⌂</span><b>홈</b>
@@ -382,15 +394,6 @@
         </div>
       </section>
 
-      <button type="button" class="creator-easter-button" id="openCreatorEasterEggBtn">
-        <span class="creator-easter-icon" aria-hidden="true">🐰</span>
-        <span class="creator-easter-copy">
-          <strong>여기 눌러봐</strong>
-          <small>작은 비밀이 숨어 있어</small>
-        </span>
-        <span class="creator-easter-arrow" aria-hidden="true">›</span>
-      </button>
-
       <p id="settingsError" class="form-error hidden"></p>
       <div class="dialog-actions">
         <button type="button" class="secondary-button" id="closeSettingsBtn">닫기</button>
@@ -442,57 +445,11 @@
     <div class="creator-card">
       <button type="button" class="creator-close-button" id="closeCreatorDialogBtn" aria-label="닫기">✕</button>
 
-      <div class="creator-sticker" aria-hidden="true">
-        <svg viewBox="0 0 520 520" role="img">
-          <title>귀여운 토끼 캐릭터</title>
-
-          <path d="M367 176C398 149 422 125 435 100C443 84 454 75 466 81C481 89 478 108 475 122C491 111 507 114 514 126C523 144 505 163 486 178C483 215 471 241 454 260"
-                fill="#FFF0C6" stroke="#111111" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-
-          <path d="M206 158C184 93 179 35 203 24C231 12 255 77 269 134"
-                fill="#FFF0C6" stroke="#111111" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M270 139C278 71 300 15 329 20C360 26 350 96 331 163"
-                fill="#FFF0C6" stroke="#111111" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
-
-          <path d="M215 55C215 55 226 91 236 127" fill="none" stroke="#F79ABB" stroke-width="17" stroke-linecap="round"/>
-          <path d="M319 52C319 52 312 91 302 130" fill="none" stroke="#F79ABB" stroke-width="17" stroke-linecap="round"/>
-
-          <path d="M83 299C85 209 149 150 257 145C365 140 441 194 445 304C450 420 383 477 257 477C128 477 78 418 83 299Z"
-                fill="#FFF0C6" stroke="#111111" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
-
-          <path d="M123 272C129 219 151 194 179 176" fill="none" stroke="#111111" stroke-width="13" stroke-linecap="round"/>
-          <path d="M380 179C407 199 422 226 425 266" fill="none" stroke="#111111" stroke-width="13" stroke-linecap="round"/>
-
-          <ellipse cx="190" cy="305" rx="27" ry="35" fill="#111111"/>
-          <ellipse cx="329" cy="296" rx="27" ry="35" fill="#111111"/>
-          <circle cx="199" cy="293" r="8" fill="#FFFFFF"/>
-          <circle cx="338" cy="284" r="8" fill="#FFFFFF"/>
-          <circle cx="182" cy="318" r="5" fill="#FFFFFF"/>
-          <circle cx="321" cy="309" r="5" fill="#FFFFFF"/>
-
-          <ellipse cx="138" cy="355" rx="45" ry="27" fill="#F79ABB"/>
-          <ellipse cx="381" cy="347" rx="45" ry="27" fill="#F79ABB"/>
-          <path d="M116 352L108 366M137 347L131 365M158 347L154 363"
-                fill="none" stroke="#111111" stroke-width="8" stroke-linecap="round"/>
-          <path d="M357 341L350 358M379 338L374 356M400 340L396 356"
-                fill="none" stroke="#111111" stroke-width="8" stroke-linecap="round"/>
-
-          <path d="M234 339C252 356 270 356 286 338C286 375 277 402 259 402C241 402 233 376 234 339Z"
-                fill="#111111" stroke="#111111" stroke-width="8" stroke-linejoin="round"/>
-          <path d="M248 377C256 369 265 369 274 377C270 389 265 395 259 395C253 395 249 389 248 377Z"
-                fill="#F79ABB"/>
-          <path d="M291 406C288 419 281 426 272 427" fill="none" stroke="#111111" stroke-width="8" stroke-linecap="round"/>
-
-          <path d="M121 412C96 400 85 380 92 361C99 343 117 344 130 358C125 335 132 318 147 315C165 311 174 333 169 356C187 338 207 342 211 358C216 376 197 390 177 397C177 420 165 438 145 440C130 442 120 431 121 412Z"
-                fill="#FFF0C6" stroke="#111111" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M142 350L156 381M153 378L178 365"
-                fill="none" stroke="#111111" stroke-width="12" stroke-linecap="round"/>
-
-          <path d="M407 414C423 421 432 435 430 452" fill="none" stroke="#111111" stroke-width="13" stroke-linecap="round"/>
-        </svg>
+      <div class="creator-original-image">
+        <img src="./assets/creator-rabbit.png" alt="희수의 토끼 캐릭터" />
       </div>
 
-      <span class="creator-made-badge">MADE WITH LOVE</span>
+      <span class="creator-made-badge">MADE BY HEESU</span>
       <p class="creator-kicker">이 여행 장부를 만든 사람</p>
       <h2>개발자: 희수</h2>
 
@@ -533,6 +490,6 @@
       window.__travelLedgerBootError(reason);
     });
   </script>
-  <script src="./app.js?v=20260714o"></script>
+  <script src="./app.js?v=20260714p"></script>
 </body>
 </html>
