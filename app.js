@@ -172,6 +172,8 @@ async function deleteReceipt(fileId) {
 
 const ME_KEY = "travel-budget-me-id-v2";
 const POLL_INTERVAL_MS = 10000;
+const META_ROW_ID = "app-meta";
+const UNDO_DURATION_MS = 8000;
 
 const CATEGORIES = [
   { id: "food", label: "식비", icon: "🍽️" },
@@ -188,6 +190,13 @@ let state = {
   trip: { id: CONFIG.tripRowId, name: "", start: "", end: "" },
   participants: [],
   expenses: [],
+  meta: {
+    kind: "appMeta",
+    ledgerLocked: false,
+    transferStatus: {},
+    updatedAt: 0,
+    updatedBy: "",
+  },
 };
 
 let pendingReceiptFile = null;
@@ -205,6 +214,8 @@ let pendingUnsavedAction = null;
 let receiptViewerScale = 1;
 let receiptPinchStartDistance = 0;
 let receiptPinchStartScale = 1;
+let undoTimer = null;
+let lastDeletedExpense = null;
 
 function $(selector, root = document) {
   return root.querySelector(selector);
@@ -249,6 +260,81 @@ function categoryInfo(id) {
 
 function participantName(id) {
   return state.participants.find((participant) => participant.id === id)?.name || "알 수 없음";
+}
+
+function currentUserName() {
+  const id = getMeId();
+  return state.participants.find((participant) => participant.id === id)?.name || "사용자 미선택";
+}
+
+function isLedgerLocked() {
+  return Boolean(state.meta?.ledgerLocked);
+}
+
+function ensureLedgerEditable(message = "장부가 마감되어 수정할 수 없어.") {
+  if (!isLedgerLocked()) return true;
+  showToast(message);
+  return false;
+}
+
+function formatDateTime(timestamp) {
+  const value = Number(timestamp || 0);
+  if (!value) return "기록 없음";
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function transferKey(transfer) {
+  return `${transfer.fromId}__${transfer.toId}__${Math.round(transfer.amount)}`;
+}
+
+function serializeExpenseData(expense, overrides = {}) {
+  return {
+    kind: "expense",
+    title: expense.title,
+    amount: Number(expense.amount || 0),
+    date: expense.date,
+    category: expense.category || "etc",
+    payerId: expense.payerId,
+    splitMode: expense.splitMode === "custom" ? "custom" : "equal",
+    splits: Array.isArray(expense.splits) ? expense.splits : [],
+    memo: expense.memo || "",
+    receiptFileId: expense.receiptFileId || "",
+    createdAt: Number(expense.createdAt || Date.now()),
+    updatedAt: Number(expense.updatedAt || Date.now()),
+    createdBy: expense.createdBy || "",
+    updatedBy: expense.updatedBy || "",
+    deletedAt: expense.deletedAt || null,
+    deletedBy: expense.deletedBy || "",
+    ...overrides,
+  };
+}
+
+async function saveSharedMeta(patch, { reload = false } = {}) {
+  const nextMeta = {
+    kind: "appMeta",
+    ledgerLocked: false,
+    transferStatus: {},
+    updatedAt: 0,
+    updatedBy: "",
+    ...(state.meta || {}),
+    ...patch,
+    updatedAt: Date.now(),
+    updatedBy: currentUserName(),
+  };
+
+  const dataJson = JSON.stringify(nextMeta);
+  if (dataJson.length > 10000) throw new Error("공동 설정 데이터가 너무 커졌어.");
+
+  await upsertRow(CONFIG.tables.expenses, META_ROW_ID, { dataJson });
+  state.meta = nextMeta;
+
+  if (reload) await loadSharedData({ silent: true, force: true });
+  else renderAll();
 }
 
 function getMeId() {
@@ -430,35 +516,63 @@ async function fetchParticipants() {
 
 async function fetchExpenses() {
   const result = await listRows(CONFIG.tables.expenses, 100);
+  let meta = {
+    kind: "appMeta",
+    ledgerLocked: false,
+    transferStatus: {},
+    updatedAt: 0,
+    updatedBy: "",
+  };
+  const expenses = [];
 
-  return (result.rows || [])
-    .map((row) => {
-      const data = safeJsonParse(row.dataJson, {});
-      return {
-        id: row.$id,
-        title: String(data.title || ""),
-        amount: Number(data.amount || 0),
-        date: String(data.date || ""),
-        category: String(data.category || "etc"),
-        payerId: String(data.payerId || ""),
-        splitMode: data.splitMode === "custom" ? "custom" : "equal",
-        splits: Array.isArray(data.splits)
-          ? data.splits.map((split) => ({
-              participantId: String(split.participantId || ""),
-              amount: Number(split.amount || 0),
-            }))
-          : [],
-        memo: String(data.memo || ""),
-        receiptFileId: String(data.receiptFileId || ""),
-        createdAt: Number(data.createdAt || new Date(row.$createdAt).getTime() || 0),
-        updatedAt: Number(data.updatedAt || new Date(row.$updatedAt).getTime() || 0),
+  for (const row of result.rows || []) {
+    const data = safeJsonParse(row.dataJson, {});
+
+    if (row.$id === META_ROW_ID || data.kind === "appMeta") {
+      meta = {
+        ...meta,
+        ...data,
+        kind: "appMeta",
+        transferStatus: data.transferStatus && typeof data.transferStatus === "object"
+          ? data.transferStatus
+          : {},
       };
-    })
-    .filter((expense) => expense.title && expense.amount > 0)
-    .sort((a, b) => {
-      const dateCompare = String(b.date).localeCompare(String(a.date));
-      return dateCompare || b.createdAt - a.createdAt;
-    });
+      continue;
+    }
+
+    const expense = {
+      id: row.$id,
+      title: String(data.title || ""),
+      amount: Number(data.amount || 0),
+      date: String(data.date || ""),
+      category: String(data.category || "etc"),
+      payerId: String(data.payerId || ""),
+      splitMode: data.splitMode === "custom" ? "custom" : "equal",
+      splits: Array.isArray(data.splits)
+        ? data.splits.map((split) => ({
+            participantId: String(split.participantId || ""),
+            amount: Number(split.amount || 0),
+          }))
+        : [],
+      memo: String(data.memo || ""),
+      receiptFileId: String(data.receiptFileId || ""),
+      createdAt: Number(data.createdAt || new Date(row.$createdAt).getTime() || 0),
+      updatedAt: Number(data.updatedAt || new Date(row.$updatedAt).getTime() || 0),
+      createdBy: String(data.createdBy || ""),
+      updatedBy: String(data.updatedBy || ""),
+      deletedAt: data.deletedAt ? Number(data.deletedAt) : null,
+      deletedBy: String(data.deletedBy || ""),
+    };
+
+    if (expense.title && expense.amount > 0 && !expense.deletedAt) expenses.push(expense);
+  }
+
+  expenses.sort((a, b) => {
+    const dateCompare = String(b.date).localeCompare(String(a.date));
+    return dateCompare || b.createdAt - a.createdAt;
+  });
+
+  return { expenses, meta };
 }
 
 function isEditingNow() {
@@ -493,12 +607,17 @@ async function loadSharedData({ silent = false, force = false } = {}) {
       )), 15000);
     });
 
-    const [trip, participants, expenses] = await Promise.race([
+    const [trip, participants, expensePayload] = await Promise.race([
       dataRequest,
       timeoutRequest,
     ]);
 
-    state = { trip, participants, expenses };
+    state = {
+      trip,
+      participants,
+      expenses: expensePayload.expenses,
+      meta: expensePayload.meta,
+    };
 
     if (getMeId() && !participants.some((participant) => participant.id === getMeId())) {
       setMeId("");
@@ -534,6 +653,11 @@ function setupRealtime() {
 
 
 function navigate(viewName, { skipUnsavedCheck = false } = {}) {
+  if (viewName === "add" && isLedgerLocked()) {
+    showToast("장부가 마감되어 지출을 추가할 수 없어.");
+    return false;
+  }
+
   if (
     !skipUnsavedCheck &&
     viewName !== "add" &&
@@ -669,6 +793,11 @@ function renderHeader() {
     period = `${state.trip.start.replaceAll("-", ".")} 출발`;
   }
   $("#homePeriod").textContent = period;
+
+  const locked = isLedgerLocked();
+  $("#ledgerLockBanner").classList.toggle("hidden", !locked);
+  $(".nav-add").disabled = locked;
+  $(".nav-add").setAttribute("aria-disabled", String(locked));
 }
 
 function expenseCardHtml(expense) {
@@ -813,17 +942,27 @@ function renderSettlement() {
   `).join("");
 
   const meId = getMeId();
+  $("#transferList").innerHTML = transfers.map((transfer) => {
+    const key = transferKey(transfer);
+    const completed = Boolean(state.meta?.transferStatus?.[key]);
+    const relatedToMe = transfer.fromId === meId || transfer.toId === meId;
 
-  $("#transferList").innerHTML = transfers.map((transfer) => `
-    <div class="transfer-row${transfer.fromId === meId || transfer.toId === meId ? " my-transfer" : ""}">
-      <div class="transfer-route">
-        <span>${escapeHtml(participantName(transfer.fromId))}</span>
-        <span class="transfer-arrow">→</span>
-        <span>${escapeHtml(participantName(transfer.toId))}</span>
+    return `
+      <div class="transfer-row${relatedToMe ? " my-transfer" : ""}${completed ? " is-complete" : ""}">
+        <div class="transfer-route">
+          <span>${escapeHtml(participantName(transfer.fromId))}</span>
+          <span class="transfer-arrow">→</span>
+          <span>${escapeHtml(participantName(transfer.toId))}</span>
+        </div>
+        <div class="transfer-side">
+          <strong>${formatWon(transfer.amount)}</strong>
+          <button type="button" class="transfer-complete-button" data-transfer-key="${escapeHtml(key)}">
+            ${completed ? "✓ 송금 완료" : "완료 체크"}
+          </button>
+        </div>
       </div>
-      <strong>${formatWon(transfer.amount)}</strong>
-    </div>
-  `).join("") || (state.expenses.length
+    `;
+  }).join("") || (state.expenses.length
     ? '<div class="empty-state compact"><strong>추가로 송금할 금액이 없어 🎉</strong></div>'
     : "");
 
@@ -871,7 +1010,7 @@ function renderParticipantOptions({ selectedIds = null, existingSplits = null } 
     ? state.participants.map((participant) => `
       <div class="manage-row">
         <span>${escapeHtml(participant.name)}${participant.id === getMeId() ? " · 나" : ""}</span>
-        <button type="button" data-remove-participant="${participant.id}">삭제</button>
+        <button type="button" data-remove-participant="${participant.id}" ${isLedgerLocked() ? "disabled" : ""}>삭제</button>
       </div>
     `).join("")
     : '<p class="hint">함께 여행하는 사람을 추가해줘.</p>';
@@ -885,6 +1024,20 @@ function renderSettingsValues() {
   $("#tripEndInput").value = state.trip.end || "";
   $("#settingsError").classList.add("hidden");
   renderParticipantOptions();
+
+  const locked = isLedgerLocked();
+  $("#ledgerLockStatus").textContent = locked ? "마감됨" : "수정 가능";
+  $("#ledgerLockDescription").textContent = locked
+    ? "지출과 여행 정보는 읽기만 가능해."
+    : "누구나 지출을 추가하고 수정할 수 있어.";
+  $("#toggleLedgerLockBtn").textContent = locked ? "다시 열기" : "장부 마감";
+  $("#toggleLedgerLockBtn").classList.toggle("is-locked", locked);
+
+  ["#tripNameInput", "#tripStartInput", "#tripEndInput", "#newParticipantInput", "#addParticipantBtn", "#saveTripSettingsBtn"]
+    .forEach((selector) => {
+      const element = $(selector);
+      if (element) element.disabled = locked;
+    });
 }
 
 function renderAll() {
@@ -1111,6 +1264,7 @@ function validateExpense(amount, splits) {
 
 async function saveTripSettings(event) {
   event.preventDefault();
+  if (!ensureLedgerEditable("장부가 마감되어 여행 정보를 수정할 수 없어.")) return;
   const name = $("#tripNameInput").value.trim();
   const startDate = $("#tripStartInput").value;
   const endDate = $("#tripEndInput").value;
@@ -1153,6 +1307,7 @@ async function saveTripSettings(event) {
 }
 
 async function addParticipant() {
+  if (!ensureLedgerEditable("장부가 마감되어 참여자를 추가할 수 없어.")) return;
   const input = $("#newParticipantInput");
   const name = input.value.trim();
   if (!name) return;
@@ -1181,6 +1336,7 @@ async function addParticipant() {
 }
 
 async function deleteParticipant(participantId) {
+  if (!ensureLedgerEditable("장부가 마감되어 참여자를 삭제할 수 없어.")) return;
   const participant = state.participants.find((item) => item.id === participantId);
   if (!participant) return;
 
@@ -1210,6 +1366,7 @@ async function deleteParticipant(participantId) {
 
 async function saveExpenseFromForm(event) {
   event.preventDefault();
+  if (!ensureLedgerEditable("장부가 마감되어 지출을 저장할 수 없어.")) return;
   if (isSubmittingExpense) return;
 
   const amount = parseMoneyInput($("#expenseAmount").value);
@@ -1240,7 +1397,9 @@ async function saveExpenseFromForm(event) {
     }
 
     const now = Date.now();
+    const editorName = currentUserName();
     const expenseData = {
+      kind: "expense",
       title: $("#expenseTitle").value.trim(),
       amount,
       date: $("#expenseDate").value,
@@ -1252,6 +1411,10 @@ async function saveExpenseFromForm(event) {
       receiptFileId,
       createdAt: existing?.createdAt || now,
       updatedAt: now,
+      createdBy: existing?.createdBy || editorName,
+      updatedBy: editorName,
+      deletedAt: null,
+      deletedBy: "",
     };
 
     const dataJson = JSON.stringify(expenseData);
@@ -1337,6 +1500,10 @@ function openExpenseDetail(expenseId) {
       </div>
       ${expense.memo ? `<div class="detail-row"><span>메모</span><strong>${escapeHtml(expense.memo)}</strong></div>` : ""}
     </div>
+    <div class="detail-audit">
+      <span><em>작성</em><strong>${escapeHtml(expense.createdBy || "기록 없음")} · ${formatDateTime(expense.createdAt)}</strong></span>
+      <span><em>최근 수정</em><strong>${escapeHtml(expense.updatedBy || expense.createdBy || "기록 없음")} · ${formatDateTime(expense.updatedAt)}</strong></span>
+    </div>
     ${expense.receiptFileId ? `
       <div class="detail-receipt-scroll" aria-label="영수증 사진">
         <img class="detail-receipt" src="${receiptViewUrl(expense.receiptFileId)}" alt="영수증 사진" />
@@ -1345,16 +1512,20 @@ function openExpenseDetail(expenseId) {
         </button>
       </div>
     ` : ""}
-    <div class="detail-actions">
-      <button class="detail-edit-button" data-edit-expense="${expense.id}">수정하기</button>
-      <button class="detail-delete-button" data-delete-expense="${expense.id}">삭제</button>
-    </div>
+    ${isLedgerLocked()
+      ? `<div class="detail-actions locked"><div class="detail-locked-message">🔒 장부가 마감되어 수정할 수 없어.</div></div>`
+      : `<div class="detail-actions">
+          <button class="detail-edit-button" data-edit-expense="${expense.id}">수정하기</button>
+          <button class="detail-delete-button" data-delete-expense="${expense.id}">삭제</button>
+        </div>`
+    }
   `;
 
   $("#expenseDetailDialog").showModal();
 }
 
 function editExpense(expenseId) {
+  if (!ensureLedgerEditable("장부가 마감되어 지출을 수정할 수 없어.")) return;
   const expense = state.expenses.find((item) => item.id === expenseId);
   if (!expense) return;
 
@@ -1402,25 +1573,65 @@ function editExpense(expenseId) {
   setExpenseSaving(false);
 }
 
+function hideUndoToast() {
+  clearTimeout(undoTimer);
+  undoTimer = null;
+  $("#undoToast").classList.remove("show");
+}
+
+function showUndoDelete(expense) {
+  lastDeletedExpense = expense;
+  $("#undoToastMessage").textContent = `"${expense.title}" 지출을 삭제했어.`;
+  $("#undoToast").classList.add("show");
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => {
+    hideUndoToast();
+    lastDeletedExpense = null;
+  }, UNDO_DURATION_MS);
+}
+
+async function undoLastDelete() {
+  const expense = lastDeletedExpense;
+  if (!expense) return;
+
+  hideUndoToast();
+  showLoading("지출 복원하는 중…");
+  try {
+    const restored = serializeExpenseData(expense, {
+      deletedAt: null,
+      deletedBy: "",
+      updatedAt: Date.now(),
+      updatedBy: currentUserName(),
+    });
+    await updateRow(CONFIG.tables.expenses, expense.id, { dataJson: JSON.stringify(restored) });
+    lastDeletedExpense = null;
+    await loadSharedData({ silent: true, force: true });
+    showToast("삭제한 지출을 되돌렸어.");
+  } catch (error) {
+    alert(readableError(error));
+  } finally {
+    hideLoading();
+  }
+}
+
 async function deleteExpense(expenseId) {
+  if (!ensureLedgerEditable("장부가 마감되어 지출을 삭제할 수 없어.")) return;
   const expense = state.expenses.find((item) => item.id === expenseId);
   if (!expense || !confirm(`"${expense.title}" 지출을 삭제할까?`)) return;
 
   showLoading("지출 삭제하는 중…");
   try {
-    await deleteRow(CONFIG.tables.expenses, expense.id);
-
-    if (expense.receiptFileId) {
-      try {
-        await deleteReceipt(expense.receiptFileId);
-      } catch (deleteError) {
-        console.warn("Receipt cleanup failed", deleteError);
-      }
-    }
-
+    const deletedData = serializeExpenseData(expense, {
+      deletedAt: Date.now(),
+      deletedBy: currentUserName(),
+      updatedAt: Date.now(),
+      updatedBy: currentUserName(),
+    });
+    await updateRow(CONFIG.tables.expenses, expense.id, { dataJson: JSON.stringify(deletedData) });
     $("#expenseDetailDialog").close();
-    await loadSharedData({ silent: true, force: true });
-    showToast("지출을 삭제했어.");
+    state.expenses = state.expenses.filter((item) => item.id !== expense.id);
+    renderAll();
+    showUndoDelete(expense);
   } catch (error) {
     alert(readableError(error));
   } finally {
@@ -1443,7 +1654,10 @@ function settlementText() {
   });
 
   const transferLines = transfers.length
-    ? transfers.map((transfer) => `- ${participantName(transfer.fromId)} → ${participantName(transfer.toId)} ${formatWon(transfer.amount)}`)
+    ? transfers.map((transfer) => {
+        const completed = Boolean(state.meta?.transferStatus?.[transferKey(transfer)]);
+        return `- ${completed ? "[완료] " : ""}${participantName(transfer.fromId)} → ${participantName(transfer.toId)} ${formatWon(transfer.amount)}`;
+      })
     : ["- 추가 송금 없음"];
 
   return [
@@ -1456,6 +1670,101 @@ function settlementText() {
     "추천 송금",
     ...transferLines,
   ].join("\n");
+}
+
+async function toggleLedgerLock() {
+  const nextLocked = !isLedgerLocked();
+  const message = nextLocked
+    ? "장부를 마감하면 지출·여행 정보 수정이 잠겨. 마감할까?"
+    : "장부를 다시 열면 모두가 수정할 수 있어. 다시 열까?";
+  if (!confirm(message)) return;
+
+  showLoading(nextLocked ? "장부 마감하는 중…" : "장부 다시 여는 중…");
+  try {
+    await saveSharedMeta({ ledgerLocked: nextLocked });
+    renderSettingsValues();
+    showToast(nextLocked ? "장부를 마감했어." : "장부를 다시 열었어.");
+  } catch (error) {
+    alert(readableError(error));
+  } finally {
+    hideLoading();
+  }
+}
+
+async function toggleTransferComplete(key) {
+  const nextStatus = {
+    ...(state.meta?.transferStatus || {}),
+    [key]: !state.meta?.transferStatus?.[key],
+  };
+
+  showLoading("송금 상태 저장하는 중…");
+  try {
+    await saveSharedMeta({ transferStatus: nextStatus });
+    showToast(nextStatus[key] ? "송금 완료로 표시했어." : "완료 표시를 취소했어.");
+  } catch (error) {
+    alert(readableError(error));
+  } finally {
+    hideLoading();
+  }
+}
+
+function safeFileName(value, fallback = "travel-budget") {
+  return String(value || fallback)
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "-")
+    .slice(0, 60) || fallback;
+}
+
+function downloadBlob(content, type, filename) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function csvCell(value) {
+  const text = String(value ?? "");
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function downloadCsvBackup() {
+  const headers = ["날짜", "카테고리", "사용 내역", "금액", "결제자", "부담자", "메모", "영수증 URL", "작성자", "최근 수정자", "최근 수정일"];
+  const rows = state.expenses.map((expense) => [
+    expense.date,
+    categoryInfo(expense.category).label,
+    expense.title,
+    expense.amount,
+    participantName(expense.payerId),
+    expense.splits.map((split) => `${participantName(split.participantId)} ${formatWon(split.amount)}`).join(" / "),
+    expense.memo,
+    expense.receiptFileId ? receiptViewUrl(expense.receiptFileId) : "",
+    expense.createdBy || "",
+    expense.updatedBy || "",
+    new Date(expense.updatedAt || expense.createdAt).toISOString(),
+  ]);
+  const csv = "\uFEFF" + [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
+  downloadBlob(csv, "text/csv;charset=utf-8", `${safeFileName(state.trip.name)}-가계부.csv`);
+  showToast("CSV 파일을 만들었어.");
+}
+
+function downloadJsonBackup() {
+  const backup = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    trip: state.trip,
+    participants: state.participants,
+    expenses: state.expenses,
+    meta: state.meta,
+    settlementText: settlementText(),
+  };
+  downloadBlob(JSON.stringify(backup, null, 2), "application/json;charset=utf-8", `${safeFileName(state.trip.name)}-백업.json`);
+  showToast("JSON 백업 파일을 만들었어.");
 }
 
 function bindEvents() {
@@ -1496,6 +1805,12 @@ function bindEvents() {
       return;
     }
 
+    const transferStatusKey = event.target.closest("[data-transfer-key]")?.dataset.transferKey;
+    if (transferStatusKey) {
+      toggleTransferComplete(transferStatusKey);
+      return;
+    }
+
     if (event.target.closest("[data-close-detail]")) {
       $("#expenseDetailDialog").close();
     }
@@ -1511,6 +1826,10 @@ function bindEvents() {
 
   $("#openSettingsBtn").addEventListener("click", openSettingsDialog);
   $("#openSettingsNavBtn").addEventListener("click", openSettingsDialog);
+  $("#ledgerLockBanner").addEventListener("click", openSettingsDialog);
+  $("#toggleLedgerLockBtn").addEventListener("click", toggleLedgerLock);
+  $("#downloadCsvBtn").addEventListener("click", downloadCsvBackup);
+  $("#downloadJsonBtn").addEventListener("click", downloadJsonBackup);
 
   $("#closeSettingsBtn").addEventListener("click", () => {
     $("#settingsDialog").close();
@@ -1667,6 +1986,8 @@ function bindEvents() {
     pendingUnsavedAction = null;
     $("#unsavedChangesDialog").close();
   });
+
+  $("#undoDeleteBtn").addEventListener("click", undoLastDelete);
 
   $("#copySettlementBtn").addEventListener("click", async () => {
     if (!state.expenses.length) {

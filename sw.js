@@ -1,9 +1,9 @@
-const CACHE_NAME = "travel-budget-appwrite-v2-10";
+const CACHE_NAME = "travel-budget-appwrite-v2-11";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260714l",
-  "./app.js?v=20260714l",
+  "./styles.css?v=20260714m",
+  "./app.js?v=20260714m",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
