@@ -782,8 +782,86 @@ function renderCategoryOptions() {
   $("#categoryFilter").innerHTML = `<option value="">모든 카테고리</option>${options}`;
 }
 
+function openTripTitleEditor() {
+  if (isLedgerLocked()) {
+    showToast("장부가 마감되어 여행 이름을 수정할 수 없어.");
+    return;
+  }
+
+  $("#quickTripNameInput").value = state.trip.name || "";
+  $("#tripTitleDisplay").classList.add("hidden");
+  $("#tripTitleEditor").classList.remove("hidden");
+
+  requestAnimationFrame(() => {
+    $("#quickTripNameInput").focus();
+    $("#quickTripNameInput").select();
+  });
+}
+
+function closeTripTitleEditor() {
+  $("#tripTitleEditor").classList.remove("is-saving");
+  $("#tripTitleEditor").classList.add("hidden");
+  $("#tripTitleDisplay").classList.remove("hidden");
+  $("#quickTripNameInput").value = state.trip.name || "";
+}
+
+async function saveTripTitleQuickly(event) {
+  event.preventDefault();
+
+  if (!ensureLedgerEditable("장부가 마감되어 여행 이름을 수정할 수 없어.")) {
+    closeTripTitleEditor();
+    return;
+  }
+
+  const name = $("#quickTripNameInput").value.trim();
+
+  if (!name) {
+    showToast("여행 이름을 입력해줘.");
+    $("#quickTripNameInput").focus();
+    return;
+  }
+
+  if (name === state.trip.name) {
+    closeTripTitleEditor();
+    return;
+  }
+
+  $("#tripTitleEditor").classList.add("is-saving");
+  setSyncStatus("저장 중…", "syncing");
+
+  try {
+    await upsertRow(
+      CONFIG.tables.trips,
+      CONFIG.tripRowId,
+      {
+        name,
+        startDate: state.trip.start || null,
+        endDate: state.trip.end || null,
+      },
+    );
+
+    state.trip.name = name;
+    renderHeader();
+    renderSettingsValues();
+    closeTripTitleEditor();
+    setSyncStatus("✓ 저장됨", "success");
+    showToast("여행 이름을 바꿨어.");
+  } catch (error) {
+    $("#tripTitleEditor").classList.remove("is-saving");
+    setSyncStatus(navigator.onLine ? "저장 실패" : "오프라인", navigator.onLine ? "error" : "offline");
+    alert(readableError(error));
+  }
+}
+
 function renderHeader() {
   $("#headerTripName").textContent = state.trip.name || "여행 가계부";
+  $("#tripTitleButton").disabled = isLedgerLocked();
+  $("#tripTitleButton").setAttribute(
+    "aria-label",
+    isLedgerLocked()
+      ? "장부가 마감되어 여행 이름 수정 불가"
+      : "여행 이름 수정",
+  );
   $("#memberCount").textContent = `${state.participants.length}명`;
 
   let period = "여행 정보를 설정해줘";
@@ -795,6 +873,11 @@ function renderHeader() {
   $("#homePeriod").textContent = period;
 
   const locked = isLedgerLocked();
+
+  if (locked && !$("#tripTitleEditor").classList.contains("hidden")) {
+    closeTripTitleEditor();
+  }
+
   $("#ledgerLockBanner").classList.toggle("hidden", !locked);
   $(".nav-add").disabled = locked;
   $(".nav-add").setAttribute("aria-disabled", String(locked));
@@ -942,6 +1025,14 @@ function renderSettlement() {
   `).join("");
 
   const meId = getMeId();
+  const completedTransferCount = transfers.filter((transfer) => (
+    Boolean(state.meta?.transferStatus?.[transferKey(transfer)])
+  )).length;
+
+  $("#transferProgressBadge").textContent = transfers.length
+    ? `완료 ${completedTransferCount}/${transfers.length}`
+    : "송금 횟수 최소화";
+
   $("#transferList").innerHTML = transfers.map((transfer) => {
     const key = transferKey(transfer);
     const completed = Boolean(state.meta?.transferStatus?.[key]);
@@ -956,8 +1047,14 @@ function renderSettlement() {
         </div>
         <div class="transfer-side">
           <strong>${formatWon(transfer.amount)}</strong>
-          <button type="button" class="transfer-complete-button" data-transfer-key="${escapeHtml(key)}">
-            ${completed ? "✓ 송금 완료" : "완료 체크"}
+          <button
+            type="button"
+            class="transfer-complete-button"
+            data-transfer-key="${escapeHtml(key)}"
+            aria-pressed="${completed}"
+            aria-label="${completed ? "송금 완료 취소" : "송금 완료 표시"}"
+          >
+            ${completed ? "✓ 완료" : "완료"}
           </button>
         </div>
       </div>
@@ -1767,6 +1864,27 @@ function downloadJsonBackup() {
   showToast("JSON 백업 파일을 만들었어.");
 }
 
+function openCreatorDialog() {
+  if ($("#settingsDialog").open) {
+    $("#settingsDialog").close();
+  }
+
+  if (!$("#creatorDialog").open) {
+    $("#creatorDialog").showModal();
+  }
+}
+
+function closeCreatorDialog({ reopenSettings = true } = {}) {
+  if ($("#creatorDialog").open) {
+    $("#creatorDialog").close();
+  }
+
+  if (reopenSettings) {
+    renderSettingsValues();
+    $("#settingsDialog").showModal();
+  }
+}
+
 function bindEvents() {
   document.addEventListener("click", (event) => {
     const go = event.target.closest("[data-go]")?.dataset.go;
@@ -1819,10 +1937,25 @@ function bindEvents() {
   const openSettingsDialog = () => {
     requestUnsavedConfirmation(() => {
       if (hasUnsavedExpenseChanges()) resetExpenseForm();
+
+      if (!$("#tripTitleEditor").classList.contains("hidden")) {
+        closeTripTitleEditor();
+      }
+
       renderSettingsValues();
       $("#settingsDialog").showModal();
     });
   };
+
+  $("#tripTitleButton").addEventListener("click", openTripTitleEditor);
+  $("#tripTitleEditor").addEventListener("submit", saveTripTitleQuickly);
+  $("#cancelTripTitleEditBtn").addEventListener("click", closeTripTitleEditor);
+  $("#quickTripNameInput").addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeTripTitleEditor();
+    }
+  });
 
   $("#openSettingsBtn").addEventListener("click", openSettingsDialog);
   $("#openSettingsNavBtn").addEventListener("click", openSettingsDialog);
@@ -1830,6 +1963,21 @@ function bindEvents() {
   $("#toggleLedgerLockBtn").addEventListener("click", toggleLedgerLock);
   $("#downloadCsvBtn").addEventListener("click", downloadCsvBackup);
   $("#downloadJsonBtn").addEventListener("click", downloadJsonBackup);
+
+  $("#openCreatorEasterEggBtn").addEventListener("click", openCreatorDialog);
+  $("#closeCreatorDialogBtn").addEventListener("click", () => closeCreatorDialog());
+  $("#confirmCreatorDialogBtn").addEventListener("click", () => closeCreatorDialog());
+
+  $("#creatorDialog").addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeCreatorDialog();
+  });
+
+  $("#creatorDialog").addEventListener("click", (event) => {
+    if (event.target === $("#creatorDialog")) {
+      closeCreatorDialog();
+    }
+  });
 
   $("#closeSettingsBtn").addEventListener("click", () => {
     $("#settingsDialog").close();

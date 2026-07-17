@@ -1758,3 +1758,535 @@ textarea {
     width: 100%;
   }
 }
+
+
+/* ======================================================
+   v2.12 compact settlement + creator easter egg
+====================================================== */
+
+.view[data-view="settlement"] .section-heading:first-child {
+  margin-bottom: 12px;
+}
+
+.view[data-view="settlement"] .section-heading:first-child h2 {
+  font-size: 23px;
+}
+
+.view[data-view="settlement"] .settlement-total-card {
+  padding: 17px 19px;
+  border-radius: 21px;
+}
+
+.view[data-view="settlement"] .settlement-total-card span {
+  font-size: 10px;
+}
+
+.view[data-view="settlement"] .settlement-total-card strong {
+  margin: 5px 0 6px;
+  font-size: 27px;
+  line-height: 1.12;
+}
+
+.view[data-view="settlement"] .settlement-total-card p {
+  font-size: 10px;
+}
+
+.view[data-view="settlement"] .section-heading.mini {
+  margin-top: 17px;
+  margin-bottom: 9px;
+}
+
+.view[data-view="settlement"] .section-heading.mini h3 {
+  font-size: 15px;
+}
+
+.view[data-view="settlement"] .transfer-list {
+  gap: 7px;
+}
+
+.view[data-view="settlement"] .transfer-row {
+  min-height: 58px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 9px 11px 9px 13px;
+  border-radius: 15px;
+}
+
+.view[data-view="settlement"] .transfer-route {
+  min-width: 0;
+  overflow: hidden;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.view[data-view="settlement"] .transfer-route span:not(.transfer-arrow) {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.view[data-view="settlement"] .transfer-arrow {
+  flex: 0 0 auto;
+  font-size: 11px;
+}
+
+.view[data-view="settlement"] .transfer-side {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.view[data-view="settlement"] .transfer-side > strong {
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.view[data-view="settlement"] .transfer-complete-button {
+  min-width: 50px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.view[data-view="settlement"] .person-summary {
+  gap: 7px;
+}
+
+.view[data-view="settlement"] .person-row {
+  min-height: 62px;
+  padding: 11px 13px;
+  border-radius: 15px;
+}
+
+.view[data-view="settlement"] .person-numbers {
+  gap: 8px;
+  font-size: 10px;
+}
+
+#transferProgressBadge {
+  min-width: 58px;
+  text-align: center;
+}
+
+/* clickable creator easter egg */
+.creator-easter-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 68px;
+  gap: 12px;
+  overflow: hidden;
+  margin: 18px 0 4px;
+  padding: 11px 13px;
+  border: 1px solid #DED6FF;
+  border-radius: 19px;
+  color: #3F337A;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(255,255,255,.95), transparent 23%),
+    linear-gradient(135deg, #F3EFFF, #FFF2F8);
+  box-shadow: 0 11px 24px rgba(103,83,190,.12);
+  text-align: left;
+  isolation: isolate;
+}
+
+.creator-easter-button::before {
+  position: absolute;
+  top: -120%;
+  left: -38%;
+  z-index: -1;
+  width: 48%;
+  height: 320%;
+  transform: rotate(22deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.82), transparent);
+  content: "";
+  animation: creator-shine 3.2s ease-in-out infinite;
+}
+
+.creator-easter-button:active {
+  transform: scale(.985);
+}
+
+.creator-easter-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  border-radius: 15px;
+  background: rgba(255,255,255,.82);
+  box-shadow: 0 7px 16px rgba(103,83,190,.12);
+  font-size: 23px;
+  animation: creator-hop 2.6s ease-in-out infinite;
+}
+
+.creator-easter-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.creator-easter-copy strong,
+.creator-easter-copy small {
+  display: block;
+}
+
+.creator-easter-copy strong {
+  margin-bottom: 3px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.creator-easter-copy small {
+  color: #8A7EAC;
+  font-size: 10px;
+}
+
+.creator-easter-arrow {
+  color: #8D7FCC;
+  font-size: 26px;
+  line-height: 1;
+}
+
+@keyframes creator-shine {
+  0%, 60% { left: -48%; opacity: 0; }
+  72% { opacity: 1; }
+  100% { left: 120%; opacity: 0; }
+}
+
+@keyframes creator-hop {
+  0%, 82%, 100% { transform: translateY(0) rotate(0); }
+  88% { transform: translateY(-4px) rotate(-5deg); }
+  94% { transform: translateY(0) rotate(4deg); }
+}
+
+/* creator modal */
+.creator-dialog {
+  width: min(382px, calc(100% - 30px));
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 28px;
+  background: transparent;
+}
+
+.creator-dialog[open] {
+  animation: creator-dialog-in .28s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.creator-dialog::backdrop {
+  background: rgba(23, 27, 42, .52);
+  backdrop-filter: blur(7px);
+  animation: sheet-backdrop-in .22s ease-out both;
+}
+
+.creator-card {
+  position: relative;
+  overflow: hidden;
+  padding: 24px 21px 20px;
+  border: 1px solid rgba(255,255,255,.9);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 15% 2%, #FFFFFF 0, transparent 31%),
+    linear-gradient(160deg, #FFF9FB, #F4F1FF 70%, #EEE9FF);
+  box-shadow: 0 28px 80px rgba(27, 31, 53, .25);
+  text-align: center;
+}
+
+.creator-card::before,
+.creator-card::after {
+  position: absolute;
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.creator-card::before {
+  top: -44px;
+  right: -38px;
+  width: 130px;
+  height: 130px;
+  background: rgba(255, 183, 213, .2);
+}
+
+.creator-card::after {
+  bottom: 56px;
+  left: -42px;
+  width: 105px;
+  height: 105px;
+  background: rgba(124, 108, 235, .12);
+}
+
+.creator-close-button {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  z-index: 3;
+  width: 39px;
+  height: 39px;
+  border: 0;
+  border-radius: 13px;
+  color: #7A718E;
+  background: rgba(255,255,255,.8);
+  box-shadow: 0 6px 16px rgba(48,39,91,.08);
+  font-size: 17px;
+}
+
+.creator-sticker {
+  position: relative;
+  z-index: 1;
+  width: min(245px, 74vw);
+  margin: -4px auto -6px;
+  filter: drop-shadow(0 13px 16px rgba(45,36,83,.12));
+}
+
+.creator-sticker svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.creator-made-badge {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #6C56C6;
+  background: rgba(255,255,255,.78);
+  box-shadow: 0 5px 15px rgba(72,56,139,.08);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.creator-kicker {
+  position: relative;
+  z-index: 1;
+  margin: 12px 0 4px;
+  color: #8D82A5;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.creator-card h2 {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: #30265E;
+  font-size: 24px;
+  letter-spacing: -.03em;
+}
+
+.creator-message {
+  position: relative;
+  z-index: 1;
+  margin: 9px auto 17px;
+  color: #776E8B;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.creator-confirm-button {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 49px;
+  border: 0;
+  border-radius: 15px;
+  color: white;
+  background: linear-gradient(135deg, #725DE3, #9A63D8);
+  box-shadow: 0 11px 22px rgba(113,88,211,.22);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+@keyframes creator-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 360px) {
+  .view[data-view="settlement"] .transfer-row {
+    padding-left: 11px;
+  }
+
+  .view[data-view="settlement"] .transfer-side {
+    gap: 5px;
+  }
+
+  .view[data-view="settlement"] .transfer-side > strong {
+    font-size: 12px;
+  }
+
+  .view[data-view="settlement"] .transfer-complete-button {
+    min-width: 44px;
+    padding: 0 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .creator-easter-button::before,
+  .creator-easter-icon,
+  .creator-dialog[open] {
+    animation: none;
+  }
+}
+
+
+/* ======================================================
+   v2.13 quick trip title editing
+====================================================== */
+
+.topbar-brand {
+  min-width: 0;
+  flex: 1;
+}
+
+.trip-title-display {
+  min-width: 0;
+}
+
+.trip-title-button {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  gap: 7px;
+  padding: 1px 0;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+}
+
+.trip-title-button > span:first-child {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -.035em;
+  line-height: 1.25;
+}
+
+.trip-title-edit-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 9px;
+  color: var(--primary);
+  background: var(--surface-soft);
+  font-size: 11px;
+  opacity: .82;
+  transition: transform .16s ease, background .16s ease;
+}
+
+.trip-title-button:active .trip-title-edit-icon {
+  transform: scale(.92);
+  background: #E7EBFF;
+}
+
+.trip-title-button[disabled] {
+  cursor: default;
+}
+
+.trip-title-button[disabled] .trip-title-edit-icon {
+  display: none;
+}
+
+.trip-title-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  width: min(100%, 390px);
+  gap: 7px;
+  margin-top: 3px;
+}
+
+.trip-title-editor input {
+  min-width: 0;
+  min-height: 41px;
+  padding: 0 11px;
+  border: 1px solid #9EACFF;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(79,107,255,.09);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.trip-title-editor-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.trip-title-save-button,
+.trip-title-cancel-button {
+  min-height: 39px;
+  padding: 0 9px;
+  border-radius: 11px;
+  font-size: 10px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.trip-title-save-button {
+  border: 0;
+  color: white;
+  background: var(--primary);
+}
+
+.trip-title-cancel-button {
+  border: 1px solid #E0E4EE;
+  color: #778095;
+  background: white;
+}
+
+.trip-title-editor.is-saving input,
+.trip-title-editor.is-saving button {
+  pointer-events: none;
+  opacity: .62;
+}
+
+.creator-card h2 {
+  margin-bottom: 17px;
+}
+
+@media (max-width: 390px) {
+  .topbar {
+    gap: 10px;
+  }
+
+  .trip-title-button > span:first-child {
+    font-size: 20px;
+  }
+
+  .trip-title-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .trip-title-editor-actions {
+    justify-content: flex-start;
+  }
+
+  .trip-title-save-button,
+  .trip-title-cancel-button {
+    min-height: 34px;
+  }
+}
