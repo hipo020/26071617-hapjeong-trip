@@ -2627,3 +2627,123 @@ textarea {
     right: -5px;
   }
 }
+
+
+/* ======================================================
+   v2.16 header mystery trigger
+====================================================== */
+
+/* Disable the former edge-floating placement. */
+.global-easter-button {
+  display: none !important;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.header-easter-button {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.95);
+  border-radius: 12px;
+  color: #6651BE;
+  background:
+    radial-gradient(circle at 30% 20%, #FFFFFF 0, transparent 34%),
+    linear-gradient(145deg, #F1EDFF, #FFE4F1);
+  box-shadow:
+    0 7px 18px rgba(80,62,157,.15),
+    inset 0 0 0 1px rgba(103,79,193,.05);
+  font-family: ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 950;
+  line-height: 1;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.header-easter-button::before {
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border: 1px solid rgba(137,105,221,.2);
+  border-radius: 15px;
+  content: "";
+  animation: header-mystery-ring 2.8s ease-out infinite;
+}
+
+.header-easter-button:active {
+  transform: scale(.9) rotate(-6deg);
+  box-shadow: 0 4px 10px rgba(80,62,157,.13);
+}
+
+.header-easter-spark {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  color: #A36FC9;
+  font-size: 8px;
+  animation: header-mystery-spark 1.9s ease-in-out infinite;
+}
+
+@keyframes header-mystery-ring {
+  0% {
+    opacity: .55;
+    transform: scale(.85);
+  }
+  72%, 100% {
+    opacity: 0;
+    transform: scale(1.24);
+  }
+}
+
+@keyframes header-mystery-spark {
+  0%, 100% {
+    opacity: .25;
+    transform: scale(.7) rotate(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(24deg);
+  }
+}
+
+.creator-made-badge {
+  letter-spacing: .08em;
+}
+
+.creator-confirm-button {
+  font-size: 15px;
+}
+
+@media (max-width: 370px) {
+  .topbar-actions {
+    gap: 5px;
+  }
+
+  .header-easter-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 11px;
+  }
+
+  .sync-status {
+    padding-right: 8px;
+    padding-left: 8px;
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-easter-button::before,
+  .header-easter-spark {
+    animation: none;
+  }
+}

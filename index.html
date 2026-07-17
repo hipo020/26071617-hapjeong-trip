@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=20260714q" />
+  <link rel="stylesheet" href="./styles.css?v=20260714r" />
   <title>여행 가계부</title>
 </head>
 <body>
@@ -39,6 +39,16 @@
         </form>
       </div>
       <div class="topbar-actions">
+        <button
+          type="button"
+          class="header-easter-button"
+          id="openCreatorEasterEggBtn"
+          aria-label="비밀 버튼"
+          title="?"
+        >
+          <span class="header-easter-spark" aria-hidden="true">✦</span>
+          <span aria-hidden="true">?</span>
+        </button>
         <span class="sync-status" id="syncStatus">연결 중…</span>
         <button class="icon-button top-settings-button" id="openSettingsBtn" aria-label="여행 설정">⚙️</button>
       </div>
@@ -305,18 +315,6 @@
       </section>
     </main>
 
-    <button
-      type="button"
-      class="global-easter-button"
-      id="openCreatorEasterEggBtn"
-      aria-label="비밀 버튼"
-      title="?"
-    >
-      <span class="global-easter-spark spark-one" aria-hidden="true">✦</span>
-      <span class="global-easter-question" aria-hidden="true">?</span>
-      <span class="global-easter-spark spark-two" aria-hidden="true">✧</span>
-    </button>
-
     <nav class="bottom-nav" aria-label="주요 메뉴">
       <button class="nav-item active" data-go="home">
         <span>⌂</span><b>홈</b>
@@ -461,11 +459,11 @@
         <img src="./assets/creator-rabbit.png" alt="희수의 토끼 캐릭터" />
       </div>
 
-      <span class="creator-made-badge">MADE BY HEESU</span>
+      <span class="creator-made-badge">MADE BY HEE SOO</span>
       <p class="creator-kicker">이 여행 장부를 만든 사람</p>
       <h2>개발자: 희수</h2>
 
-      <button type="button" class="creator-confirm-button" id="confirmCreatorDialogBtn">확인했어!</button>
+      <button type="button" class="creator-confirm-button" id="confirmCreatorDialogBtn">따봉 👍</button>
     </div>
   </dialog>
 
@@ -502,6 +500,6 @@
       window.__travelLedgerBootError(reason);
     });
   </script>
-  <script src="./app.js?v=20260714q"></script>
+  <script src="./app.js?v=20260714r"></script>
 </body>
 </html>
