@@ -198,6 +198,13 @@ let toastTimer = null;
 let refreshTimer = null;
 let refreshQueued = false;
 let currentRequestCount = 0;
+let formDirty = false;
+let suppressDirtyTracking = false;
+let isSubmittingExpense = false;
+let pendingUnsavedAction = null;
+let receiptViewerScale = 1;
+let receiptPinchStartDistance = 0;
+let receiptPinchStartScale = 1;
 
 function $(selector, root = document) {
   return root.querySelector(selector);
@@ -270,6 +277,68 @@ function setSyncStatus(text, status = "") {
   const element = $("#syncStatus");
   element.textContent = text;
   element.className = `sync-status${status ? ` ${status}` : ""}`;
+}
+
+function setExpenseFormDirty(value) {
+  formDirty = Boolean(value);
+}
+
+function hasUnsavedExpenseChanges() {
+  return Boolean(
+    formDirty &&
+    !isSubmittingExpense &&
+    $('.view[data-view="add"]')?.classList.contains("active")
+  );
+}
+
+function requestUnsavedConfirmation(action) {
+  if (!hasUnsavedExpenseChanges()) {
+    action();
+    return true;
+  }
+
+  pendingUnsavedAction = action;
+  $("#unsavedChangesDialog").showModal();
+  return false;
+}
+
+function setExpenseSaving(saving) {
+  isSubmittingExpense = Boolean(saving);
+  const button = $("#saveExpenseBtn");
+  button.disabled = isSubmittingExpense;
+  button.setAttribute("aria-busy", String(isSubmittingExpense));
+  button.textContent = isSubmittingExpense
+    ? "저장 중…"
+    : ($("#editingExpenseId").value ? "수정 내용 저장" : "지출 저장하기");
+}
+
+function touchDistance(touches) {
+  if (!touches || touches.length < 2) return 0;
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
+
+function setReceiptViewerScale(nextScale) {
+  receiptViewerScale = Math.min(4, Math.max(1, nextScale));
+  const image = $("#receiptViewerImage");
+  image.style.width = `${receiptViewerScale * 100}%`;
+  image.style.minWidth = `${receiptViewerScale * 100}%`;
+  $("#receiptZoomResetBtn").textContent = `${Math.round(receiptViewerScale * 100)}%`;
+}
+
+function openReceiptViewer(source) {
+  if (!source) return;
+  $("#receiptViewerImage").src = source;
+  setReceiptViewerScale(1);
+  $("#receiptViewerStage").scrollTo({ top: 0, left: 0 });
+  $("#receiptViewerDialog").showModal();
+}
+
+function closeReceiptViewer() {
+  $("#receiptViewerDialog").close();
+  $("#receiptViewerImage").removeAttribute("src");
+  setReceiptViewerScale(1);
 }
 
 function showLoading(message = "처리하는 중…") {
@@ -404,12 +473,12 @@ function isEditingNow() {
 async function loadSharedData({ silent = false, force = false } = {}) {
   if (!force && silent && isEditingNow()) {
     refreshQueued = true;
-    setSyncStatus("변경 대기", "syncing");
+    setSyncStatus("업데이트 대기", "syncing");
     return;
   }
 
   if (!silent) showLoading("공동 장부 불러오는 중…");
-  setSyncStatus("동기화 중", "syncing");
+  setSyncStatus("새 내역 확인 중…", "syncing");
 
   try {
     const dataRequest = Promise.all([
@@ -436,7 +505,7 @@ async function loadSharedData({ silent = false, force = false } = {}) {
     }
 
     renderAll();
-    setSyncStatus("최신", "success");
+    setSyncStatus("✓ 저장됨", "success");
     refreshQueued = false;
 
     if (!state.trip.name && !$("#settingsDialog").open) {
@@ -446,7 +515,7 @@ async function loadSharedData({ silent = false, force = false } = {}) {
   } catch (error) {
     console.error(error);
     const message = readableError(error);
-    setSyncStatus("연결 오류", "error");
+    setSyncStatus(navigator.onLine ? "동기화 오류" : "오프라인", navigator.onLine ? "error" : "offline");
     if (!silent) alert(message);
     else showToast(message);
   } finally {
@@ -464,7 +533,19 @@ function setupRealtime() {
 }
 
 
-function navigate(viewName) {
+function navigate(viewName, { skipUnsavedCheck = false } = {}) {
+  if (
+    !skipUnsavedCheck &&
+    viewName !== "add" &&
+    hasUnsavedExpenseChanges()
+  ) {
+    requestUnsavedConfirmation(() => {
+      resetExpenseForm();
+      navigate(viewName, { skipUnsavedCheck: true });
+    });
+    return false;
+  }
+
   $$(".view").forEach((view) => {
     view.classList.toggle("active", view.dataset.view === viewName);
   });
@@ -482,6 +563,7 @@ function navigate(viewName) {
   }
 
   renderAll();
+  return true;
 }
 
 function equalSplits(amount, participantIds) {
@@ -602,6 +684,7 @@ function expenseCardHtml(expense) {
         <strong>${formatWon(expense.amount)}</strong>
         <span>${category.label}</span>
       </span>
+      <span class="expense-chevron" aria-hidden="true">›</span>
     </button>
   `;
 }
@@ -609,6 +692,7 @@ function expenseCardHtml(expense) {
 function renderHome() {
   const total = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const summary = calculateSummary();
+  const transfers = calculateTransfers(summary);
   const meId = getMeId();
   const me = summary.find((person) => person.id === meId);
   const selectedParticipant = state.participants.find((participant) => participant.id === meId);
@@ -616,11 +700,12 @@ function renderHome() {
   $("#homeTotal").textContent = formatWon(total);
 
   $("#homeUserCard").classList.toggle("needs-selection", !selectedParticipant);
+  $("#homeUserCard").classList.toggle("is-selected", Boolean(selectedParticipant));
   $("#homeUserAvatar").textContent = selectedParticipant
     ? Array.from(selectedParticipant.name.trim())[0] || "?"
     : "?";
   $("#homeUserName").textContent = selectedParticipant
-    ? `${selectedParticipant.name} 기준으로 보는 중`
+    ? `${selectedParticipant.name} 기준`
     : state.participants.length
       ? "사용자를 선택해줘"
       : "참여자를 먼저 추가해줘";
@@ -634,9 +719,11 @@ function renderHome() {
   if (!me) {
     $("#myBalanceLabel").textContent = "내 정산 상태";
     $("#myBalance").textContent = state.participants.length
-      ? "설정에서 내 이름을 선택해줘"
+      ? "사용자를 선택해줘"
       : "참여자를 먼저 추가해줘";
+    $("#myBalanceHint").textContent = "사용자를 선택하면 송금 정보를 보여줘";
     $("#myBalance").className = "";
+    $("#myBalanceCard").disabled = true;
     $("#myBalanceCard").classList.remove(
       "balance-state-in",
       "balance-state-out",
@@ -644,7 +731,14 @@ function renderHome() {
     );
   } else {
     const balance = me.balance;
-    $("#myBalanceLabel").textContent = balance >= 0 ? "내가 받을 돈" : "내가 보낼 돈";
+    const outgoingTransfers = transfers.filter((transfer) => transfer.fromId === meId);
+    const incomingTransfers = transfers.filter((transfer) => transfer.toId === meId);
+
+    $("#myBalanceLabel").textContent = balance > 0
+      ? "내가 받을 금액"
+      : balance < 0
+        ? "내가 보낼 금액"
+        : "정산 완료";
     $("#myBalance").textContent = formatWon(Math.abs(balance));
     $("#myBalance").className = balance > 0
       ? "balance-positive"
@@ -652,6 +746,19 @@ function renderHome() {
         ? "balance-negative"
         : "";
 
+    if (balance < 0) {
+      $("#myBalanceHint").textContent = outgoingTransfers.length === 1
+        ? `${participantName(outgoingTransfers[0].toId)}에게 보내기 →`
+        : `${outgoingTransfers.length}명에게 보내기 →`;
+    } else if (balance > 0) {
+      $("#myBalanceHint").textContent = incomingTransfers.length === 1
+        ? `${participantName(incomingTransfers[0].fromId)}에게 받을 예정 →`
+        : `${incomingTransfers.length}명에게 받을 예정 →`;
+    } else {
+      $("#myBalanceHint").textContent = "추가로 주고받을 금액이 없어";
+    }
+
+    $("#myBalanceCard").disabled = state.expenses.length === 0;
     $("#myBalanceCard").classList.toggle("balance-state-in", balance > 0);
     $("#myBalanceCard").classList.toggle("balance-state-out", balance < 0);
     $("#myBalanceCard").classList.toggle("balance-state-even", balance === 0);
@@ -705,8 +812,10 @@ function renderSettlement() {
     </div>
   `).join("");
 
+  const meId = getMeId();
+
   $("#transferList").innerHTML = transfers.map((transfer) => `
-    <div class="transfer-row">
+    <div class="transfer-row${transfer.fromId === meId || transfer.toId === meId ? " my-transfer" : ""}">
       <div class="transfer-route">
         <span>${escapeHtml(participantName(transfer.fromId))}</span>
         <span class="transfer-arrow">→</span>
@@ -812,6 +921,7 @@ function revokePendingReceiptUrl() {
 }
 
 function resetExpenseForm() {
+  suppressDirtyTracking = true;
   $("#expenseForm").reset();
   $("#editingExpenseId").value = "";
   $("#expenseFormTitle").textContent = "지출 추가";
@@ -835,6 +945,9 @@ function resetExpenseForm() {
   $("#customSplitBox").classList.add("hidden");
   $("#splitHint").textContent = "선택한 사람끼리 1원 단위까지 자동으로 나눠.";
   renderParticipantOptions();
+  suppressDirtyTracking = false;
+  setExpenseFormDirty(false);
+  setExpenseSaving(false);
 }
 
 function canvasToJpegBlob(canvas, quality) {
@@ -1097,6 +1210,8 @@ async function deleteParticipant(participantId) {
 
 async function saveExpenseFromForm(event) {
   event.preventDefault();
+  if (isSubmittingExpense) return;
+
   const amount = parseMoneyInput($("#expenseAmount").value);
   const splits = buildSplits(amount);
   const validationError = validateExpense(amount, splits);
@@ -1114,7 +1229,8 @@ async function saveExpenseFromForm(event) {
   let receiptFileId = removeExistingReceipt ? "" : oldReceiptId;
   let uploadedFileId = "";
 
-  showLoading(existing ? "지출 수정하는 중…" : "지출 저장하는 중…");
+  setExpenseSaving(true);
+  setSyncStatus("저장 중…", "syncing");
 
   try {
     if (pendingReceiptFile) {
@@ -1179,8 +1295,9 @@ async function saveExpenseFromForm(event) {
     }
     $("#formError").textContent = readableError(error);
     $("#formError").classList.remove("hidden");
+    setSyncStatus(navigator.onLine ? "저장 실패" : "오프라인", navigator.onLine ? "error" : "offline");
   } finally {
-    hideLoading();
+    setExpenseSaving(false);
   }
 }
 
@@ -1223,11 +1340,14 @@ function openExpenseDetail(expenseId) {
     ${expense.receiptFileId ? `
       <div class="detail-receipt-scroll" aria-label="영수증 사진">
         <img class="detail-receipt" src="${receiptViewUrl(expense.receiptFileId)}" alt="영수증 사진" />
+        <button type="button" class="receipt-fullscreen-button" data-open-receipt="${receiptViewUrl(expense.receiptFileId)}">
+          전체화면
+        </button>
       </div>
     ` : ""}
     <div class="detail-actions">
-      <button class="secondary-button" data-edit-expense="${expense.id}">수정</button>
-      <button class="danger-button" data-delete-expense="${expense.id}">삭제</button>
+      <button class="detail-edit-button" data-edit-expense="${expense.id}">수정하기</button>
+      <button class="detail-delete-button" data-delete-expense="${expense.id}">삭제</button>
     </div>
   `;
 
@@ -1240,6 +1360,7 @@ function editExpense(expenseId) {
 
   $("#expenseDetailDialog").close();
   navigate("add");
+  suppressDirtyTracking = true;
 
   $("#editingExpenseId").value = expense.id;
   $("#expenseFormTitle").textContent = "지출 수정";
@@ -1276,6 +1397,9 @@ function editExpense(expenseId) {
     existingReceiptId ? "기존 영수증 사진이 첨부되어 있어" : "사진을 추가하지 않았어",
     Boolean(existingReceiptId),
   );
+  suppressDirtyTracking = false;
+  setExpenseFormDirty(false);
+  setExpenseSaving(false);
 }
 
 async function deleteExpense(expenseId) {
@@ -1366,14 +1490,23 @@ function bindEvents() {
       return;
     }
 
+    const receiptSource = event.target.closest("[data-open-receipt]")?.dataset.openReceipt;
+    if (receiptSource) {
+      openReceiptViewer(receiptSource);
+      return;
+    }
+
     if (event.target.closest("[data-close-detail]")) {
       $("#expenseDetailDialog").close();
     }
   });
 
   const openSettingsDialog = () => {
-    renderSettingsValues();
-    $("#settingsDialog").showModal();
+    requestUnsavedConfirmation(() => {
+      if (hasUnsavedExpenseChanges()) resetExpenseForm();
+      renderSettingsValues();
+      $("#settingsDialog").showModal();
+    });
   };
 
   $("#openSettingsBtn").addEventListener("click", openSettingsDialog);
@@ -1393,6 +1526,10 @@ function bindEvents() {
 
   $("#homeMeSelect").addEventListener("change", (event) => {
     applyMeSelection(event.target.value);
+  });
+
+  $("#myBalanceCard").addEventListener("click", () => {
+    if (!$("#myBalanceCard").disabled) navigate("settlement");
   });
 
   $("#addParticipantBtn").addEventListener("click", addParticipant);
@@ -1463,9 +1600,72 @@ function bindEvents() {
 
   $("#expenseForm").addEventListener("submit", saveExpenseFromForm);
 
+  ["input", "change"].forEach((eventName) => {
+    $("#expenseForm").addEventListener(eventName, () => {
+      if (!suppressDirtyTracking && !isSubmittingExpense) {
+        setExpenseFormDirty(true);
+      }
+    });
+  });
+
   $("#cancelEditBtn").addEventListener("click", () => {
-    resetExpenseForm();
     navigate("expenses");
+  });
+
+  $("#closeReceiptViewerBtn").addEventListener("click", closeReceiptViewer);
+  $("#receiptZoomOutBtn").addEventListener("click", () => {
+    setReceiptViewerScale(receiptViewerScale - 0.25);
+  });
+  $("#receiptZoomInBtn").addEventListener("click", () => {
+    setReceiptViewerScale(receiptViewerScale + 0.25);
+  });
+  $("#receiptZoomResetBtn").addEventListener("click", () => {
+    setReceiptViewerScale(1);
+    $("#receiptViewerStage").scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  });
+
+  $("#receiptViewerImage").addEventListener("dblclick", () => {
+    setReceiptViewerScale(receiptViewerScale > 1 ? 1 : 2);
+  });
+
+  $("#receiptViewerStage").addEventListener("touchstart", (event) => {
+    if (event.touches.length === 2) {
+      receiptPinchStartDistance = touchDistance(event.touches);
+      receiptPinchStartScale = receiptViewerScale;
+    }
+  }, { passive: true });
+
+  $("#receiptViewerStage").addEventListener("touchmove", (event) => {
+    if (event.touches.length !== 2 || !receiptPinchStartDistance) return;
+    event.preventDefault();
+    const ratio = touchDistance(event.touches) / receiptPinchStartDistance;
+    setReceiptViewerScale(receiptPinchStartScale * ratio);
+  }, { passive: false });
+
+  $("#receiptViewerStage").addEventListener("touchend", () => {
+    receiptPinchStartDistance = 0;
+  });
+
+  $("#receiptViewerDialog").addEventListener("click", (event) => {
+    if (event.target === $("#receiptViewerDialog")) closeReceiptViewer();
+  });
+
+  $("#keepEditingBtn").addEventListener("click", () => {
+    pendingUnsavedAction = null;
+    $("#unsavedChangesDialog").close();
+  });
+
+  $("#leaveWithoutSavingBtn").addEventListener("click", () => {
+    const action = pendingUnsavedAction;
+    pendingUnsavedAction = null;
+    $("#unsavedChangesDialog").close();
+    if (action) action();
+  });
+
+  $("#unsavedChangesDialog").addEventListener("cancel", (event) => {
+    event.preventDefault();
+    pendingUnsavedAction = null;
+    $("#unsavedChangesDialog").close();
   });
 
   $("#copySettlementBtn").addEventListener("click", async () => {
@@ -1487,10 +1687,22 @@ function bindEvents() {
     }
   });
 
-  window.addEventListener("beforeunload", () => {
-    if (realtimeSubscription?.unsubscribe) realtimeSubscription.unsubscribe();
+  window.addEventListener("online", () => {
+    setSyncStatus("새 내역 확인 중…", "syncing");
+    loadSharedData({ silent: true, force: true });
+  });
 
+  window.addEventListener("offline", () => {
+    setSyncStatus("오프라인", "offline");
+  });
+
+  window.addEventListener("beforeunload", (event) => {
     revokePendingReceiptUrl();
+
+    if (hasUnsavedExpenseChanges()) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
   });
 }
 

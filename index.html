@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=20260714j" />
+  <link rel="stylesheet" href="./styles.css?v=20260714k" />
   <title>여행 가계부</title>
 </head>
 <body>
@@ -19,7 +19,7 @@
         <h1 id="headerTripName">여행 가계부</h1>
       </div>
       <div class="topbar-actions">
-        <span class="sync-status" id="syncStatus">연결 중</span>
+        <span class="sync-status" id="syncStatus">연결 중…</span>
         <button class="icon-button top-settings-button" id="openSettingsBtn" aria-label="여행 설정">⚙️</button>
       </div>
     </header>
@@ -61,10 +61,11 @@
             <span>내 부담액</span>
             <strong id="myOwed">0원</strong>
           </article>
-          <article class="summary-card accent-card" id="myBalanceCard">
+          <button type="button" class="summary-card accent-card balance-summary-card" id="myBalanceCard">
             <span id="myBalanceLabel">정산 상태</span>
             <strong id="myBalance">0원</strong>
-          </article>
+            <small id="myBalanceHint">사용자를 선택하면 정산 정보를 보여줘</small>
+          </button>
         </div>
 
         <div class="section-heading">
@@ -246,16 +247,16 @@
           <p id="settlementSub">참여자를 등록하고 지출을 입력해줘.</p>
         </article>
 
-        <div class="section-heading mini">
-          <h3>사람별 요약</h3>
-        </div>
-        <div id="personSummary" class="person-summary"></div>
-
-        <div class="section-heading mini">
+        <div class="section-heading mini settlement-first-heading">
           <h3>추천 송금</h3>
           <span class="badge">송금 횟수 최소화</span>
         </div>
         <div id="transferList" class="transfer-list"></div>
+
+        <div class="section-heading mini">
+          <h3>사람별 요약</h3>
+        </div>
+        <div id="personSummary" class="person-summary"></div>
 
         <div class="empty-state compact" id="settlementEmpty">
           <div class="empty-icon">💸</div>
@@ -338,6 +339,38 @@
     </div>
   </dialog>
 
+  <dialog id="receiptViewerDialog" class="receipt-viewer-dialog">
+    <div class="receipt-viewer-shell">
+      <div class="receipt-viewer-toolbar">
+        <div>
+          <strong>영수증 보기</strong>
+          <small>두 손가락으로 확대하거나 버튼을 사용해줘</small>
+        </div>
+        <button type="button" class="receipt-viewer-close" id="closeReceiptViewerBtn" aria-label="영수증 닫기">✕</button>
+      </div>
+      <div class="receipt-viewer-stage" id="receiptViewerStage">
+        <img id="receiptViewerImage" alt="확대한 영수증 사진" />
+      </div>
+      <div class="receipt-viewer-controls">
+        <button type="button" id="receiptZoomOutBtn" aria-label="축소">−</button>
+        <button type="button" id="receiptZoomResetBtn">100%</button>
+        <button type="button" id="receiptZoomInBtn" aria-label="확대">＋</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="unsavedChangesDialog" class="confirm-dialog">
+    <div class="confirm-dialog-card">
+      <span class="confirm-dialog-icon">✎</span>
+      <h2>작성 중인 내용이 있어</h2>
+      <p>지금 나가면 입력하거나 수정한 내용이 사라져.</p>
+      <div class="confirm-dialog-actions">
+        <button type="button" class="secondary-button" id="keepEditingBtn">계속 작성</button>
+        <button type="button" class="leave-button" id="leaveWithoutSavingBtn">나가기</button>
+      </div>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" role="status"></div>
   <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-card">
@@ -367,6 +400,6 @@
       window.__travelLedgerBootError(reason);
     });
   </script>
-  <script src="./app.js?v=20260714j"></script>
+  <script src="./app.js?v=20260714k"></script>
 </body>
 </html>
