@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=20260714k" />
+  <link rel="stylesheet" href="./styles.css?v=20260714l" />
   <title>여행 가계부</title>
 </head>
 <body>
@@ -51,6 +51,14 @@
             </select>
           </label>
         </article>
+
+        <button type="button" class="ledger-lock-banner hidden" id="ledgerLockBanner">
+          <span>🔒</span>
+          <span>
+            <strong>장부가 마감됐어</strong>
+            <small>지출은 읽기만 가능해. 설정에서 다시 열 수 있어.</small>
+          </span>
+        </button>
 
         <div class="summary-grid">
           <article class="summary-card">
@@ -324,10 +332,40 @@
         <div id="participantManageList" class="manage-list"></div>
       </fieldset>
 
+      <section class="settings-tool-section">
+        <div class="settings-tool-heading">
+          <div>
+            <span class="settings-tool-label">장부 상태</span>
+            <strong id="ledgerLockStatus">수정 가능</strong>
+            <small id="ledgerLockDescription">누구나 지출을 추가하고 수정할 수 있어.</small>
+          </div>
+          <button type="button" class="ledger-toggle-button" id="toggleLedgerLockBtn">장부 마감</button>
+        </div>
+      </section>
+
+      <section class="settings-tool-section">
+        <div class="settings-tool-title">
+          <div>
+            <span class="settings-tool-label">백업·내보내기</span>
+            <strong>여행 기록 보관</strong>
+          </div>
+        </div>
+        <div class="export-button-grid">
+          <button type="button" class="export-button" id="downloadCsvBtn">
+            <span>CSV</span>
+            <small>엑셀에서 열기</small>
+          </button>
+          <button type="button" class="export-button" id="downloadJsonBtn">
+            <span>JSON</span>
+            <small>전체 데이터 백업</small>
+          </button>
+        </div>
+      </section>
+
       <p id="settingsError" class="form-error hidden"></p>
       <div class="dialog-actions">
         <button type="button" class="secondary-button" id="closeSettingsBtn">닫기</button>
-        <button type="submit" class="primary-button">여행 정보 저장</button>
+        <button type="submit" class="primary-button" id="saveTripSettingsBtn">여행 정보 저장</button>
       </div>
     </form>
   </dialog>
@@ -372,6 +410,10 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
+  <div id="undoToast" class="undo-toast" role="status" aria-live="polite">
+    <span id="undoToastMessage">지출을 삭제했어.</span>
+    <button type="button" id="undoDeleteBtn">되돌리기</button>
+  </div>
   <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-card">
       <span class="loading-spinner" aria-hidden="true"></span>
@@ -400,6 +442,6 @@
       window.__travelLedgerBootError(reason);
     });
   </script>
-  <script src="./app.js?v=20260714k"></script>
+  <script src="./app.js?v=20260714l"></script>
 </body>
 </html>
