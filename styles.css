@@ -2871,3 +2871,58 @@ main {
     animation: none;
   }
 }
+
+
+/* ======================================================
+   v2.18 mystery button visibility adjustment
+====================================================== */
+
+.bottom-easter-button {
+  right: max(12px, calc((100vw - 520px) / 2 + 12px));
+  bottom: calc(90px + env(safe-area-inset-bottom));
+  width: 45px;
+  height: 45px;
+  border: 1.5px solid #CFC3F6;
+  border-radius: 16px;
+  color: #5F49B7;
+  background:
+    radial-gradient(circle at 29% 19%, #FFFFFF 0, transparent 35%),
+    linear-gradient(145deg, rgba(240,235,255,.98), rgba(255,222,239,.98));
+  box-shadow:
+    0 10px 24px rgba(76,58,151,.23),
+    0 0 0 3px rgba(126,98,211,.055),
+    inset 0 0 0 1px rgba(255,255,255,.76);
+  opacity: .98;
+}
+
+.bottom-easter-button::before {
+  inset: -4px;
+  border-color: rgba(118,88,207,.22);
+  border-radius: 20px;
+}
+
+.bottom-easter-question {
+  font-size: 21px;
+}
+
+.bottom-easter-spark {
+  top: 3px;
+  right: 4px;
+  font-size: 9px;
+}
+
+.bottom-easter-button:hover,
+.bottom-easter-button:focus-visible {
+  opacity: 1;
+  border-color: #B8A7EE;
+  box-shadow:
+    0 12px 28px rgba(76,58,151,.27),
+    0 0 0 4px rgba(126,98,211,.07),
+    inset 0 0 0 1px rgba(255,255,255,.8);
+}
+
+@media (max-width: 540px) {
+  .bottom-easter-button {
+    right: 11px;
+  }
+}
