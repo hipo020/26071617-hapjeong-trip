@@ -917,7 +917,7 @@ function renderHome() {
     ? Array.from(selectedParticipant.name.trim())[0] || "?"
     : "?";
   $("#homeUserName").textContent = selectedParticipant
-    ? `${selectedParticipant.name} 기준`
+    ? "내 정산 기준"
     : state.participants.length
       ? "사용자를 선택해줘"
       : "참여자를 먼저 추가해줘";

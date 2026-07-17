@@ -2451,3 +2451,179 @@ textarea {
     animation: none;
   }
 }
+
+
+/* ======================================================
+   v2.15 home summary polish
+====================================================== */
+
+.summary-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.personal-summary-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  align-items: stretch;
+  min-height: 82px;
+  padding: 13px 14px;
+  border: 1px solid rgba(229, 233, 242, .78);
+  border-radius: 19px;
+  background: var(--surface);
+  box-shadow: 0 8px 26px rgba(36, 49, 92, .055);
+}
+
+.personal-summary-item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.personal-summary-item:first-child {
+  padding-right: 13px;
+}
+
+.personal-summary-item:last-child {
+  padding-left: 13px;
+}
+
+.personal-summary-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1.2;
+}
+
+.personal-summary-mark {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.personal-summary-mark.paid {
+  background: #7183F5;
+  box-shadow: 0 0 0 4px rgba(113,131,245,.1);
+}
+
+.personal-summary-mark.owed {
+  background: #A49ACB;
+  box-shadow: 0 0 0 4px rgba(164,154,203,.11);
+}
+
+.personal-summary-item strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: clamp(16px, 4.7vw, 20px);
+  font-weight: 900;
+  letter-spacing: -.035em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.personal-summary-divider {
+  width: 1px;
+  min-height: 52px;
+  align-self: center;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #E5E8F0 18%,
+    #E5E8F0 82%,
+    transparent
+  );
+}
+
+.balance-summary-card {
+  min-height: 78px;
+  padding: 14px 15px;
+}
+
+.balance-summary-card > strong {
+  margin-top: 3px;
+  font-size: clamp(18px, 5vw, 21px);
+  font-variant-numeric: tabular-nums;
+}
+
+#homeTotal,
+#myPaid,
+#myOwed,
+#myBalance,
+.expense-amount strong,
+.detail-amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.expense-amount strong {
+  max-width: 112px;
+  overflow: hidden;
+  font-size: clamp(12px, 3.6vw, 14px);
+  letter-spacing: -.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Avoid showing the selected name twice in the compact user card. */
+.home-user-card.is-selected .home-user-copy > strong {
+  color: #515B72;
+  font-size: 12px;
+}
+
+/* Keep the mystery trigger available without covering expense amounts. */
+.global-easter-button {
+  top: 53%;
+  right: max(-5px, calc((100vw - 520px) / 2 - 5px));
+  bottom: auto;
+  width: 39px;
+  height: 50px;
+  transform: translateY(-50%);
+  border-radius: 16px 0 0 16px;
+  opacity: .9;
+}
+
+.global-easter-button:hover,
+.global-easter-button:focus-visible {
+  opacity: 1;
+}
+
+.global-easter-button:active {
+  transform: translateY(-50%) scale(.91) rotate(-4deg);
+}
+
+.global-easter-button::before {
+  inset: -4px -2px -4px -5px;
+  border-radius: 19px 0 0 19px;
+}
+
+@media (max-width: 370px) {
+  .personal-summary-card {
+    padding-right: 11px;
+    padding-left: 11px;
+  }
+
+  .personal-summary-item:first-child {
+    padding-right: 9px;
+  }
+
+  .personal-summary-item:last-child {
+    padding-left: 9px;
+  }
+
+  .personal-summary-item strong {
+    font-size: 16px;
+  }
+
+  .global-easter-button {
+    right: -5px;
+  }
+}

@@ -1,10 +1,10 @@
-const CACHE_NAME = "travel-budget-appwrite-v2-14";
+const CACHE_NAME = "travel-budget-appwrite-v2-15";
 const ASSETS = [
   "./assets/creator-rabbit.png",
   "./",
   "./index.html",
-  "./styles.css?v=20260714p",
-  "./app.js?v=20260714p",
+  "./styles.css?v=20260714q",
+  "./app.js?v=20260714q",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

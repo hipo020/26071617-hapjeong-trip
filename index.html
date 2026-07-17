@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=20260714p" />
+  <link rel="stylesheet" href="./styles.css?v=20260714q" />
   <title>여행 가계부</title>
 </head>
 <body>
@@ -81,14 +81,26 @@
         </button>
 
         <div class="summary-grid">
-          <article class="summary-card">
-            <span>내가 결제</span>
-            <strong id="myPaid">0원</strong>
+          <article class="personal-summary-card" aria-label="내 결제 및 부담 요약">
+            <div class="personal-summary-item">
+              <span class="personal-summary-label">
+                <i class="personal-summary-mark paid" aria-hidden="true"></i>
+                내 결제액
+              </span>
+              <strong id="myPaid">0원</strong>
+            </div>
+
+            <span class="personal-summary-divider" aria-hidden="true"></span>
+
+            <div class="personal-summary-item">
+              <span class="personal-summary-label">
+                <i class="personal-summary-mark owed" aria-hidden="true"></i>
+                내 부담액
+              </span>
+              <strong id="myOwed">0원</strong>
+            </div>
           </article>
-          <article class="summary-card">
-            <span>내 부담액</span>
-            <strong id="myOwed">0원</strong>
-          </article>
+
           <button type="button" class="summary-card accent-card balance-summary-card" id="myBalanceCard">
             <span id="myBalanceLabel">정산 상태</span>
             <strong id="myBalance">0원</strong>
@@ -490,6 +502,6 @@
       window.__travelLedgerBootError(reason);
     });
   </script>
-  <script src="./app.js?v=20260714p"></script>
+  <script src="./app.js?v=20260714q"></script>
 </body>
 </html>
