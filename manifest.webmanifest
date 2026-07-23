@@ -1,22 +1,16 @@
-{
-  "name": "여행 가계부",
-  "short_name": "여행 가계부",
-  "description": "모두가 함께 기록하고 정산하는 여행 가계부",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#F5F7FB",
-  "theme_color": "#4F6BFF",
-  "lang": "ko-KR",
-  "icons": [
-    {
-      "src": "./icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "./icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
-}
+여행 가계부 공동 저장 버전 업로드
+
+1. 이 ZIP의 압축을 풉니다.
+2. GitHub 저장소 26071617-hapjeong-trip을 엽니다.
+3. Add file → Upload files를 누릅니다.
+4. 저장소의 기존 파일은 먼저 삭제하거나, 같은 이름 파일을 업로드해 교체합니다.
+5. 압축 푼 폴더 안의 파일과 icons 폴더를 업로드합니다.
+6. Commit changes를 누릅니다.
+7. Vercel이 자동으로 새 배포를 시작합니다.
+8. Vercel Deployment가 Ready가 되면 기존 주소를 다시 엽니다.
+
+중요
+- ZIP 파일 자체를 GitHub에 올리지 않습니다.
+- index.html이 저장소 최상단에 보여야 합니다.
+- Appwrite Web platform Hostname은 26071617-hapjeong-trip.vercel.app 이어야 합니다.
+- 세 테이블과 receipts 버킷의 Any 권한은 Create, Read, Update, Delete 모두 필요합니다.
