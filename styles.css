@@ -1,321 +1,681 @@
-# 여행 가계부 · Appwrite 공동 저장 버전
-
-Vercel에서 빠르게 열리고, Appwrite에 여행 정보·참여자·지출·영수증을 공동 저장하는 모바일 웹앱입니다.
-
-## 연결 정보
-
-- Appwrite Endpoint: `https://sgp.cloud.appwrite.io/v1`
-- Project ID: `6a54f05f000bc614cd40`
-- Database ID: `travel-budget`
-- 여행정보 Table ID: `trips`
-- 참여자 Table ID: `participants`
-- 지출내역 Table ID: `expenses`
-- 영수증 Bucket ID: `receipts`
-
-## 필요한 Appwrite 구조
-
-### trips
-- `name`: Varchar 100, Required
-- `startDate`: Varchar 10, Optional
-- `endDate`: Varchar 10, Optional
-
-### participants
-- `name`: Varchar 100, Required
-
-### expenses
-- `dataJson`: Varchar 10000, Required
-
-### receipts
-- JPG, JPEG, PNG, WEBP
-- 최대 5MB
-
-세 테이블과 버킷 모두 Settings → Permissions에서 `Any` 역할에 Create, Read, Update, Delete 권한이 필요합니다. Row/File security는 끕니다.
-
-## GitHub에 반영하기
-
-이 ZIP의 압축을 푼 뒤, GitHub 저장소 최상단의 기존 파일을 전부 이 파일들로 교체합니다.
-
-- `index.html`
-- `styles.css`
-- `app.js`
-- `manifest.webmanifest`
-- `sw.js`
-- `vercel.json`
-- `icons` 폴더
-
-GitHub에 커밋하면 연결된 Vercel 프로젝트가 자동으로 다시 배포합니다.
-
-## 배포 후
-
-이전 버전이 보이면 갤럭시 Chrome에서 페이지를 새로고침하거나 탭을 완전히 닫고 다시 엽니다. 서비스 워커 캐시 이름을 변경해 이전 파일은 자동 정리됩니다.
-
-## 저장 방식
-
-- 여행 이름과 기간: Appwrite `trips`
-- 참여자: Appwrite `participants`
-- 지출: Appwrite `expenses`
-- 영수증: Appwrite Storage `receipts`
-- 이 기기의 사용자 선택: 각 브라우저 `localStorage`
-
-
-## v2.1 수정 사항
-
-- Appwrite SDK 로딩을 공식 CDN 전역 객체 방식으로 변경
-- 무한 로딩 방지용 15초 연결 타임아웃 추가
-- SDK나 연결 오류가 발생하면 화면에 원인과 다시 불러오기 버튼 표시
-- Realtime 연결 실패 시에도 기본 조회·저장 기능은 계속 작동
-- 정적 파일 캐시 버전을 변경해 이전 파일이 남는 문제 완화
-
-
-## v2.2 수정 사항
-
-- Appwrite 공식 Web 문서의 CDN 버전 `17.0.0`으로 수정
-- 초기 공동 데이터 조회에 필요하지 않은 Realtime 의존성 제거
-- 10초 간격 자동 새로고침으로 다른 사람의 변경사항 반영
-- 캐시 버전 변경
-
-
-## v2.3 수정 사항
-
-- 외부 Appwrite JavaScript SDK 의존성을 완전히 제거
-- Appwrite 공식 REST API를 `fetch`로 직접 호출
-- TablesDB 행 조회·생성·수정·삭제 지원
-- Storage 영수증 업로드·삭제 지원
-- SDK 버전 또는 CDN 로딩 문제 방지
-- 캐시 버전 변경
-
-
-## v2.4 수정 사항
-
-- 지출 상세 바텀시트가 아래에서 위로 부드럽게 올라오는 애니메이션 추가
-- 뒤 배경 페이드·블러 애니메이션 추가
-- 부담자 한 줄 나열을 2열 카드 목록으로 변경
-- 사람별 이름과 부담 금액을 분리해 가독성 개선
-- 부담자 수 표시
-- 작은 화면에서는 부담자 카드가 1열로 전환
-
-
-## v2.5 UX/UI 개선
-
-- 지출 입력 폼의 필드 간격, 라벨, 선택 상태를 정돈
-- 나누는 방식 탭의 텍스트 겹침과 정렬 문제 수정
-- 참여자 선택 칩의 터치 크기와 선택 대비 개선
-- 메모와 영수증의 선택 사항 표시를 배지 형태로 변경
-- 기본 파일 선택 UI를 제거하고 `카메라로 촬영`, `갤러리에서 선택` 버튼 제공
-- 카메라 입력과 갤러리 입력을 분리
-- 선택된 영수증 파일 상태 문구 추가
-- 하단 메뉴를 5칸으로 재구성하여 + 버튼을 화면 정중앙에 배치
-- 설정 메뉴를 하단에 추가하고 상단의 중복 설정 버튼 숨김
-
-
-## v2.6 홈 사용자 선택
-
-- 홈의 총지출 카드 아래에 `내 정산 기준` 사용자 선택 카드 추가
-- 홈에서 바로 참여자 이름을 선택 가능
-- 선택 즉시 `내가 결제`, `내 부담액`, `받을 돈/보낼 돈` 갱신
-- 선택한 사용자 이름의 첫 글자를 아바타에 표시
-- 사용자 미선택 상태를 강조해 안내
-- 선택값은 각 휴대폰 브라우저에 개별 저장
-- 설정 화면의 사용자 선택과 홈 선택값 동기화
-
-
-## v2.7 긴 영수증 사진 개선
-
-- 세로로 긴 영수증 사진을 별도로 감지
-- 긴 사진을 가장 긴 변 1400px로 과도하게 축소하던 방식 제거
-- 긴 영수증은 최대 가로 1600px, 세로 9000px 범위에서 비율 유지
-- 캔버스 메모리와 5MB 업로드 제한을 고려한 단계적 압축
-- 투명 PNG가 검게 변하지 않도록 흰 배경 적용
-- 미리보기와 상세 화면에서 긴 이미지를 세로 스크롤로 확인
-- 준비된 업로드 파일 용량 표시
-- 기존에 이미 과도하게 축소된 사진은 다시 첨부해야 선명도가 개선됨
-
-
-## v2.8 정산 금액 UI 개선
-
-- 지출 상세창의 총금액을 더 굵고 진한 블루로 표시
-- 보낼 돈 색상을 경고성 빨강에서 따뜻한 앰버 색상으로 변경
-- 받을 돈·보낼 돈·정산 완료 상태에 따라 카드 배경을 은은하게 구분
-- 홈 사용자 설명을 짧게 수정
-- 좁은 화면에서도 설명이 말줄임표로 잘리지 않고 최대 두 줄로 표시
-
-
-## v2.9 전체 UX 개선
-
-- 보낼 금액을 경고성 빨강이나 골드가 아닌 차분한 바이올렛으로 변경
-- 홈 정산 카드에 송금 상대 또는 받을 상대 표시
-- 홈 정산 카드를 누르면 정산 화면으로 이동
-- 지출 저장 중 버튼 비활성화와 `저장 중…` 상태 표시
-- 상단 상태를 `✓ 저장됨`, `저장 중…`, `오프라인`, `동기화 오류`로 명확히 구분
-- 사용자를 선택한 뒤 홈 사용자 카드를 컴팩트하게 축소
-- 영수증 전체화면 뷰어 추가
-- 확대·축소 버튼, 더블클릭, 두 손가락 확대 지원
-- 지출 작성 또는 수정 중 다른 화면으로 이동할 때 이탈 확인
-- 브라우저 새로고침·종료 시에도 작성 중 경고
-- 최근 지출 카드 오른쪽에 상세 진입 화살표 추가
-- 상세 화면의 수정 버튼을 주 동작으로 강조하고 삭제는 텍스트형으로 축소
-- 정산 화면에서 추천 송금을 사람별 요약보다 먼저 표시
-- 선택한 사용자와 관련된 추천 송금 행을 라벤더 배경으로 강조
-
-
-## v2.10 공동 장부 마무리 기능
-
-- 지출 삭제를 실제 행 삭제가 아닌 숨김 처리로 변경
-- 삭제 후 8초 동안 `되돌리기` 제공
-- CSV 내보내기 추가
-- JSON 전체 백업 추가
-- 장부 마감·다시 열기 기능 추가
-- 장부 마감 시 지출·여행 정보·참여자 수정 차단
-- 추천 송금별 공동 `송금 완료` 체크 추가
-- 정산 결과 복사에도 송금 완료 상태 표시
-- 지출에 작성자·최근 수정자와 시각 저장
-- 지출 상세에서 작성·최근 수정 기록 표시
-- 새 Appwrite 열 없이 기존 expenses.dataJson 안에 모든 정보를 저장
-
-
-## v2.11 기능 연결 수정
-
-- v2.10에서 누락됐던 자바스크립트 연결 복구
-- 추천 송금 카드에 완료 체크 버튼 표시 및 공동 저장
-- 장부 마감·다시 열기 동작 연결
-- CSV·JSON 다운로드 동작 연결
-- 삭제 후 되돌리기 동작 연결
-- 작성자·최근 수정자 기록과 상세 표시 연결
-
-
-## v2.12 정산 화면 압축·개발자 이스터에그
-
-- 추천 송금 카드의 이름·금액·완료 버튼을 한 줄에 배치
-- 완료 버튼 문구를 `완료`, `✓ 완료`로 간결하게 변경
-- 추천 송금 카드 높이와 카드 사이 간격 축소
-- 총지출 카드와 정산 제목 영역의 세로 여백 축소
-- 추천 송금 제목에 `완료 n/n` 진행률 표시
-- 사람별 요약 카드도 소폭 압축
-- 설정 화면에 반짝이는 `🐰 여기 눌러봐` 버튼 추가
-- 버튼을 누르면 토끼 스티커와 `개발자: 희수`가 나타나는 이스터에그 추가
-- 토끼 이미지는 앱에 내장된 벡터 이미지라 별도 파일이나 서버 요청이 필요 없음
-
-
-## v2.13 여행 이름 빠른 수정
-
-- 개발자 이스터에그의 추가 설명 문구 제거
-- 토끼 이미지와 `개발자: 희수` 중심으로 정리
-- 상단 여행 이름 옆에 수정 표시 추가
-- 여행 이름을 누르면 인라인 입력창으로 전환
-- 저장·취소 버튼 제공
-- Enter로 저장, Esc로 취소
-- Appwrite 공동 여행 정보에 즉시 저장
-- 다른 기기에도 동기화된 여행 이름 표시
-- 장부 마감 상태에서는 상단 이름 수정 차단
-
-
-## v2.14 전역 이스터에그·원본 이미지 적용
-
-- 설정 화면 안에 있던 이스터에그 버튼 제거
-- 모든 페이지 오른쪽 아래에 항상 보이는 미스터리 `?` 버튼 추가
-- 작은 움직임과 반짝임으로 눌러보고 싶은 느낌 강화
-- 사용자가 업로드한 토끼 이미지를 변환 없이 원본 그대로 앱에 포함
-- 기존에 임의로 다시 그린 SVG 토끼 제거
-- 이스터에그에는 원본 토끼 이미지와 `개발자: 희수` 표시
-- 이스터에그를 닫아도 설정 화면으로 자동 복귀하지 않도록 변경
-- 원본 이미지를 서비스워커 캐시에 포함해 오프라인에서도 표시
-
-
-## v2.15 홈 정산 요약 개선
-
-- `내가 결제`, `내 부담액` 두 개의 큰 카드를 하나의 가로 요약 카드로 통합
-- 라벨을 `내 결제액`, `내 부담액`으로 통일
-- 가운데 구분선과 작은 상태 마커를 사용해 관계를 명확하게 표시
-- 긴 금액도 반쪽 카드 안에서 안정적으로 보이도록 반응형 글자 크기 적용
-- 모든 주요 금액에 고정폭 숫자 정렬 적용
-- 선택된 사용자 카드의 `희수 기준 + 희수` 중복 표현 제거
-- 전역 이스터에그 버튼을 오른쪽 화면 가장자리로 이동
-- 최근 지출의 금액과 카테고리를 이스터에그 버튼이 가리는 문제 수정
-- 최근 지출의 긴 금액 크기와 말줄임 처리 개선
-
-
-## v2.16 이스터에그 버튼 위치·문구 수정
-
-- 화면 오른쪽 중간에 떠 있던 `?` 버튼 제거
-- 모든 화면에 공통으로 보이는 상단 저장 상태 옆에 미스터리 버튼 배치
-- 콘텐츠 및 최근 지출과 겹치지 않도록 위치 개선
-- 버튼의 반짝임과 은은한 파동 애니메이션 유지
-- 영문 이름을 `HEE SOO`로 수정
-- 개발자 배지를 `MADE BY HEE SOO`로 변경
-- 이스터에그 확인 버튼 문구를 `따봉 👍`으로 변경
-
-
-## v2.17 이스터에그 버튼 위치 재조정
-
-- 상단 저장 상태 옆의 `?` 버튼 제거
-- 모든 화면 오른쪽 아래, 하단 메뉴 바로 위로 이동
-- 이전보다 작은 38px 크기로 조정
-- 반투명 배경과 은은한 그림자로 콘텐츠 방해 최소화
-- 하단 콘텐츠 여백을 늘려 마지막 카드와 버튼이 겹치지 않도록 보완
-- 반짝임과 작은 움직임은 유지
-
-
-## v2.18 이스터에그 버튼 가시성 개선
-
-- 오른쪽 아래 버튼 크기를 38px에서 45px로 원복
-- 연보라색 1.5px 테두리로 윤곽을 은은하게 강조
-- 흰 배경에서도 잘 보이도록 그림자와 외곽 광택 보강
-- 물음표와 반짝임 크기도 함께 확대
-- 위치는 하단 메뉴 바로 위 오른쪽으로 유지
-
-
-## v2.19 여러 여행 관리
-
-- 하나의 웹앱에서 여러 여행 장부 생성·전환 지원
-- 상단 여행 이름을 누르면 여행 보관함 열기
-- `새 여행 추가` 버튼과 새 여행 생성 화면 추가
-- 여행별 이름·기간·참여자·지출·정산·장부 마감 상태 분리
-- 새 여행 생성 시 현재 여행 참여자 복사 선택 가능
-- 이 기기의 사용자 선택을 여행마다 별도로 기억
-- 설정 화면에서도 다른 여행으로 이동 가능
-- 기존 `main-trip` 데이터는 첫 번째 여행으로 그대로 유지
-- 기존 지출에는 자동으로 첫 번째 여행 소속을 적용
-- 기존 Appwrite 테이블 열 추가 없이 `dataJson`과 여행별 메타 행으로 구현
-- 여행 삭제 기능은 안전을 위해 이번 버전에는 포함하지 않음
-
-
-### v2.19 안정성 보완
-
-- 기존 첫 여행 참여자 목록을 여행별 메타 정보로 자동 이전
-- 다른 여행에 추가한 참여자가 기존 여행에 섞이는 문제 방지
-- 지출 작성 중 새 여행 만들기를 누르면 이탈 확인 표시
-
-
-## v2.20 여행별 초대 링크 공유
-
-- 상단에 현재 여행 `공유` 버튼 추가
-- 여행별 랜덤 초대 링크 생성
-- 링크 복사 기능
-- 휴대폰 기본 공유창 지원: 카카오톡·문자 등으로 전송
-- 초대 링크 접속 시 해당 여행 하나만 표시
-- 첫 접속 시 이 기기에서 사용할 참여자 이름 선택
-- 이름 선택은 여행별·기기별로 저장
-- 공유 참여 모드에서는 여행 보관함, 이름 수정, 참여자 관리, 장부 마감 등 관리자 UI 숨김
-- 지출 입력·수정·정산·송금 완료 체크는 함께 사용 가능
-- 기존 초대 링크를 폐기하고 새 링크를 발급하는 기능 추가
-- 장부 마감 후 초대 링크 접속자는 읽기 전용으로 사용
-- Appwrite 테이블 열 추가 없이 여행별 meta dataJson의 shareToken으로 구현
-
-### 보안 참고
-
-현재 앱은 로그인 없는 가족·친구용 구조라 초대 링크 기반으로 화면을 구분한다.
-계정 인증과 서버 측 권한 분리가 필요한 민감한 장부에는 별도 로그인 기능이 필요하다.
-
-
-## v2.21 모아트립 이름·여행 지역 분리
-
-- 앱 표시 이름을 `모아트립`으로 변경
-- PWA 설치 이름, 브라우저 제목, 설명 문구 변경
-- 추천 저장소·배포 프로젝트 이름을 `moatrip-ledger`로 정리
-- 새 여행 생성 시 `여행 이름`과 `지역`을 별도로 입력
-- 설정에서 여행 지역 수정 가능
-- 홈 총지출 카드에 지역과 여행 기간을 함께 표시
-- 여행 보관함에서 각 여행의 지역과 기간 표시
-- 여행 공유 화면과 공유 메시지에 지역 표시
-- 지역은 여행별 Appwrite meta `dataJson`에 저장
-- Appwrite 테이블 열 추가 불필요
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#4F6BFF" />
+  <meta name="description" content="여행비를 함께 기록하고 정산하는 공동 여행 장부, 모아트립" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css?v=20260714x" />
+  <title>모아트립</title>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <p class="eyebrow" id="topbarEyebrow">모아트립 · 함께 쓰는 여행 장부</p>
+
+        <div class="trip-title-display" id="tripTitleDisplay">
+          <div class="trip-title-actions">
+            <button type="button" class="trip-title-button trip-switcher-button" id="tripSwitcherButton" aria-label="여행 선택">
+              <span id="headerTripName">여행 가계부</span>
+              <span class="trip-title-chevron" aria-hidden="true">⌄</span>
+            </button>
+            <button type="button" class="trip-quick-edit-button" id="quickEditTripTitleBtn" aria-label="여행 이름 수정">
+              <span aria-hidden="true">✎</span>
+            </button>
+          </div>
+        </div>
+
+        <form class="trip-title-editor hidden" id="tripTitleEditor">
+          <input
+            id="quickTripNameInput"
+            maxlength="30"
+            autocomplete="off"
+            aria-label="여행 이름"
+            placeholder="여행 이름을 입력해줘"
+          />
+          <div class="trip-title-editor-actions">
+            <button type="submit" class="trip-title-save-button">저장</button>
+            <button type="button" class="trip-title-cancel-button" id="cancelTripTitleEditBtn">취소</button>
+          </div>
+        </form>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" class="trip-share-button" id="shareTripBtn" aria-label="현재 여행 공유">
+          <span aria-hidden="true">↗</span>
+          <b>공유</b>
+        </button>
+        <span class="sync-status" id="syncStatus">연결 중…</span>
+        <button class="icon-button top-settings-button" id="openSettingsBtn" aria-label="여행 설정">⚙️</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="view active" data-view="home">
+        <article class="hero-card">
+          <div>
+            <p class="hero-label">현재 총지출</p>
+            <h2 id="homeTotal">0원</h2>
+            <p class="hero-sub" id="homePeriod">여행 정보를 설정해줘</p>
+          </div>
+          <div class="hero-badge" id="memberCount">0명</div>
+        </article>
+
+        <article class="home-user-card" id="homeUserCard">
+          <div class="home-user-profile">
+            <span class="home-user-avatar" id="homeUserAvatar">?</span>
+            <div class="home-user-copy">
+              <span>내 정산 기준</span>
+              <strong id="homeUserName">사용자를 선택해줘</strong>
+              <small>선택한 사람 기준으로 정산 금액을 보여줘</small>
+            </div>
+          </div>
+          <label class="home-user-select-wrap">
+            <span class="visually-hidden">현재 사용자 선택</span>
+            <select id="homeMeSelect" aria-label="현재 사용자 선택">
+              <option value="">사용자 선택</option>
+            </select>
+          </label>
+        </article>
+
+        <button type="button" class="ledger-lock-banner hidden" id="ledgerLockBanner">
+          <span>🔒</span>
+          <span>
+            <strong>장부가 마감됐어</strong>
+            <small>지출은 읽기만 가능해. 설정에서 다시 열 수 있어.</small>
+          </span>
+        </button>
+
+        <div class="summary-grid">
+          <article class="personal-summary-card" aria-label="내 결제 및 부담 요약">
+            <div class="personal-summary-item">
+              <span class="personal-summary-label">
+                <i class="personal-summary-mark paid" aria-hidden="true"></i>
+                내 결제액
+              </span>
+              <strong id="myPaid">0원</strong>
+            </div>
+
+            <span class="personal-summary-divider" aria-hidden="true"></span>
+
+            <div class="personal-summary-item">
+              <span class="personal-summary-label">
+                <i class="personal-summary-mark owed" aria-hidden="true"></i>
+                내 부담액
+              </span>
+              <strong id="myOwed">0원</strong>
+            </div>
+          </article>
+
+          <button type="button" class="summary-card accent-card balance-summary-card" id="myBalanceCard">
+            <span id="myBalanceLabel">정산 상태</span>
+            <strong id="myBalance">0원</strong>
+            <small id="myBalanceHint">사용자를 선택하면 정산 정보를 보여줘</small>
+          </button>
+        </div>
+
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">최근 기록</p>
+            <h3>최근 지출</h3>
+          </div>
+          <button class="text-button" data-go="expenses">전체 보기</button>
+        </div>
+        <div id="recentExpenses" class="expense-list"></div>
+
+        <div class="empty-state" id="homeEmpty">
+          <div class="empty-icon">🧾</div>
+          <strong>아직 기록된 지출이 없어</strong>
+          <p>결제한 사람이 바로 입력하면 여행이 끝난 뒤 정산이 쉬워져.</p>
+          <button class="primary-button" data-go="add">첫 지출 추가하기</button>
+        </div>
+      </section>
+
+      <section class="view" data-view="expenses">
+        <div class="section-heading sticky-heading">
+          <div>
+            <p class="eyebrow">전체 장부</p>
+            <h2>지출 내역</h2>
+          </div>
+          <button class="small-button" data-go="add">+ 추가</button>
+        </div>
+
+        <div class="filter-panel">
+          <input id="expenseSearch" type="search" placeholder="내역이나 메모 검색" />
+          <div class="filter-row">
+            <select id="categoryFilter">
+              <option value="">모든 카테고리</option>
+            </select>
+            <select id="payerFilter">
+              <option value="">모든 결제자</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="expenseList" class="expense-list"></div>
+        <div class="empty-state compact" id="expenseEmpty">
+          <div class="empty-icon">📒</div>
+          <strong>조건에 맞는 지출이 없어</strong>
+        </div>
+      </section>
+
+      <section class="view" data-view="add">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">빠른 기록</p>
+            <h2 id="expenseFormTitle">지출 추가</h2>
+          </div>
+          <button class="text-button hidden" id="cancelEditBtn">수정 취소</button>
+        </div>
+
+        <form id="expenseForm" class="form-card">
+          <input type="hidden" id="editingExpenseId" />
+
+          <label class="form-field">
+            <span class="field-label">사용 내역</span>
+            <input id="expenseTitle" required maxlength="40" placeholder="예: 바비큐 장보기" />
+          </label>
+
+          <label class="form-field">
+            <span class="field-label">금액</span>
+            <div class="money-input">
+              <input id="expenseAmount" required inputmode="numeric" placeholder="0" />
+              <b>원</b>
+            </div>
+          </label>
+
+          <div class="form-grid form-field">
+            <label class="form-field compact-field">
+              <span class="field-label">날짜</span>
+              <input id="expenseDate" type="date" required />
+            </label>
+            <label class="form-field compact-field">
+              <span class="field-label">카테고리</span>
+              <select id="expenseCategory"></select>
+            </label>
+          </div>
+
+          <label class="form-field">
+            <span class="field-label">결제한 사람</span>
+            <select id="expensePayer" required></select>
+          </label>
+
+          <fieldset class="form-field form-section">
+            <div class="field-heading">
+              <legend>비용을 나눌 사람</legend>
+              <div class="participant-actions">
+                <button type="button" class="mini-action active" id="selectAllParticipants">전체 선택</button>
+                <button type="button" class="mini-action" id="clearParticipants">선택 해제</button>
+              </div>
+            </div>
+            <div id="participantChecklist" class="chip-grid"></div>
+          </fieldset>
+
+          <fieldset class="form-field form-section">
+            <legend>나누는 방식</legend>
+            <div class="segment-control">
+              <label>
+                <input type="radio" name="splitMode" value="equal" checked />
+                <span>똑같이</span>
+              </label>
+              <label>
+                <input type="radio" name="splitMode" value="custom" />
+                <span>직접 입력</span>
+              </label>
+            </div>
+            <div id="customSplitBox" class="custom-split hidden"></div>
+            <p id="splitHint" class="hint">선택한 사람끼리 1원 단위까지 자동으로 나눠.</p>
+          </fieldset>
+
+          <label class="form-field">
+            <span class="field-label-row">
+              <span class="field-label">메모</span>
+              <small>선택 사항</small>
+            </span>
+            <textarea id="expenseMemo" rows="3" maxlength="160" placeholder="예: 술값은 제외한 장보기 비용"></textarea>
+          </label>
+
+          <section class="form-field receipt-field" aria-labelledby="receiptLabel">
+            <span class="field-label-row">
+              <span class="field-label" id="receiptLabel">영수증 사진</span>
+              <small>선택 · 1장</small>
+            </span>
+
+            <div class="receipt-picker-actions">
+              <button type="button" class="receipt-option" id="openReceiptCameraBtn">
+                <span class="receipt-option-icon">📷</span>
+                <span class="receipt-option-copy">
+                  <strong>카메라로 촬영</strong>
+                  <small>영수증을 바로 찍기</small>
+                </span>
+              </button>
+              <button type="button" class="receipt-option" id="openReceiptGalleryBtn">
+                <span class="receipt-option-icon">🖼️</span>
+                <span class="receipt-option-copy">
+                  <strong>갤러리에서 선택</strong>
+                  <small>저장된 사진 불러오기</small>
+                </span>
+              </button>
+            </div>
+
+            <input id="receiptCameraInput" class="visually-hidden" type="file" accept="image/*" capture="environment" />
+            <input id="receiptInput" class="visually-hidden" type="file" accept="image/*" />
+            <p class="receipt-selection-text" id="receiptSelectionText">사진을 추가하지 않았어</p>
+          </section>
+
+          <div id="receiptPreviewWrap" class="receipt-preview hidden">
+            <div class="receipt-preview-scroll" aria-label="영수증 사진 미리보기">
+              <img id="receiptPreview" alt="영수증 미리보기" />
+            </div>
+            <div class="receipt-preview-footer">
+              <span>긴 영수증은 위아래로 스크롤해서 확인할 수 있어</span>
+              <button type="button" class="danger-link" id="removeReceiptBtn">사진 삭제</button>
+            </div>
+          </div>
+
+          <p id="formError" class="form-error hidden"></p>
+          <button type="submit" class="primary-button full save-expense-button" id="saveExpenseBtn">지출 저장하기</button>
+        </form>
+      </section>
+
+      <section class="view" data-view="settlement">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">여행 마지막 단계</p>
+            <h2>정산</h2>
+          </div>
+          <button class="small-button" id="copySettlementBtn">결과 복사</button>
+        </div>
+
+        <article class="settlement-total-card">
+          <span>총지출</span>
+          <strong id="settlementTotal">0원</strong>
+          <p id="settlementSub">참여자를 등록하고 지출을 입력해줘.</p>
+        </article>
+
+        <div class="section-heading mini settlement-first-heading">
+          <h3>추천 송금</h3>
+          <span class="badge" id="transferProgressBadge">송금 횟수 최소화</span>
+        </div>
+        <div id="transferList" class="transfer-list"></div>
+
+        <div class="section-heading mini">
+          <h3>사람별 요약</h3>
+        </div>
+        <div id="personSummary" class="person-summary"></div>
+
+        <div class="empty-state compact" id="settlementEmpty">
+          <div class="empty-icon">💸</div>
+          <strong>아직 계산할 지출이 없어</strong>
+        </div>
+      </section>
+    </main>
+
+    <button
+      type="button"
+      class="bottom-easter-button"
+      id="openCreatorEasterEggBtn"
+      aria-label="비밀 버튼"
+      title="?"
+    >
+      <span class="bottom-easter-spark" aria-hidden="true">✦</span>
+      <span class="bottom-easter-question" aria-hidden="true">?</span>
+    </button>
+
+    <nav class="bottom-nav" aria-label="주요 메뉴">
+      <button class="nav-item active" data-go="home">
+        <span>⌂</span><b>홈</b>
+      </button>
+      <button class="nav-item" data-go="expenses">
+        <span>≡</span><b>내역</b>
+      </button>
+      <button class="nav-add" data-go="add" aria-label="지출 추가">＋</button>
+      <button class="nav-item" data-go="settlement">
+        <span>₩</span><b>정산</b>
+      </button>
+      <button class="nav-item" id="openSettingsNavBtn" aria-label="여행 설정">
+        <span>⚙</span><b>설정</b>
+      </button>
+    </nav>
+  </div>
+
+  <dialog id="tripSwitcherDialog" class="sheet-dialog">
+    <div class="dialog-shell trip-switcher-shell">
+      <div class="dialog-handle"></div>
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">여행 보관함</p>
+          <h2>어느 여행을 볼까?</h2>
+        </div>
+        <button type="button" class="icon-button" id="closeTripSwitcherBtn" aria-label="닫기">✕</button>
+      </div>
+
+      <div id="tripSwitcherList" class="trip-switcher-list"></div>
+
+      <button type="button" class="new-trip-button" id="openNewTripBtn">
+        <span class="new-trip-plus">＋</span>
+        <span>
+          <strong>새 여행 추가</strong>
+          <small>새로운 공동 장부 만들기</small>
+        </span>
+      </button>
+    </div>
+  </dialog>
+
+  <dialog id="newTripDialog" class="sheet-dialog">
+    <form class="dialog-shell" id="newTripForm">
+      <div class="dialog-handle"></div>
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">새 공동 장부</p>
+          <h2>새 여행 만들기</h2>
+        </div>
+        <button type="button" class="icon-button" id="closeNewTripBtn" aria-label="닫기">✕</button>
+      </div>
+
+      <label>
+        <span>여행 이름</span>
+        <input id="newTripNameInput" maxlength="30" placeholder="예: 선협이랑 여름휴가" required />
+      </label>
+
+      <label>
+        <span>지역</span>
+        <input id="newTripLocationInput" maxlength="40" placeholder="예: 부산 · 해운대" />
+      </label>
+
+      <div class="form-grid">
+        <label>
+          <span>시작일</span>
+          <input id="newTripStartInput" type="date" />
+        </label>
+        <label>
+          <span>종료일</span>
+          <input id="newTripEndInput" type="date" />
+        </label>
+      </div>
+
+      <label class="copy-participants-option">
+        <input id="copyParticipantsToNewTrip" type="checkbox" />
+        <span>
+          <strong>현재 여행 참여자 복사</strong>
+          <small id="copyParticipantsHint">현재 참여자 없이 새로 시작해.</small>
+        </span>
+      </label>
+
+      <p id="newTripError" class="form-error hidden"></p>
+
+      <div class="dialog-actions">
+        <button type="button" class="secondary-button" id="cancelNewTripBtn">취소</button>
+        <button type="submit" class="primary-button" id="createTripBtn">새 여행 만들기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="shareTripDialog" class="sheet-dialog">
+    <div class="dialog-shell share-trip-shell">
+      <div class="dialog-handle"></div>
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">함께 쓰는 공동 장부</p>
+          <h2>여행 공유하기</h2>
+        </div>
+        <button type="button" class="icon-button" id="closeShareTripBtn" aria-label="닫기">✕</button>
+      </div>
+
+      <div class="share-trip-preview">
+        <span class="share-trip-icon" aria-hidden="true">🧳</span>
+        <div>
+          <small>공유할 여행</small>
+          <strong id="shareTripName">여행 가계부</strong>
+          <span class="share-trip-location hidden" id="shareTripLocation"></span>
+        </div>
+      </div>
+
+      <p class="share-trip-description">
+        이 링크로 들어온 사람은 이 여행만 볼 수 있고, 처음 한 번 자기 이름을 선택해.
+      </p>
+
+      <label class="share-link-field">
+        <span>초대 링크</span>
+        <div>
+          <input id="shareLinkInput" readonly />
+          <button type="button" id="copyShareLinkBtn">복사</button>
+        </div>
+      </label>
+
+      <button type="button" class="native-share-button" id="nativeShareTripBtn">
+        <span aria-hidden="true">↗</span>
+        <span>
+          <strong>공유하기</strong>
+          <small>카카오톡·문자 등으로 보내기</small>
+        </span>
+      </button>
+
+      <button type="button" class="renew-share-link-button" id="renewShareLinkBtn">
+        기존 링크를 끊고 새 링크 만들기
+      </button>
+
+      <p class="share-security-note">
+        링크를 받은 사람은 지출을 함께 입력하고 정산할 수 있어. 장부를 마감하면 읽기만 가능해.
+      </p>
+    </div>
+  </dialog>
+
+  <dialog id="joinTripDialog" class="join-trip-dialog">
+    <div class="join-trip-card">
+      <span class="join-trip-icon" aria-hidden="true">👋</span>
+      <p class="eyebrow">여행 장부에 초대됐어</p>
+      <h2 id="joinTripTitle">여행에 참여할게요</h2>
+      <p>이 휴대폰에서 사용할 이름을 골라줘.</p>
+
+      <label>
+        <span>나는 누구예요?</span>
+        <select id="joinTripNameSelect">
+          <option value="">이름 선택</option>
+        </select>
+      </label>
+
+      <p class="join-trip-help hidden" id="joinTripHelp">
+        등록된 참여자가 없어. 초대한 사람에게 참여자 추가를 부탁해줘.
+      </p>
+
+      <button type="button" class="primary-button full" id="joinTripContinueBtn">이 이름으로 시작</button>
+      <button type="button" class="join-trip-later-button" id="joinTripLaterBtn">나중에 선택할게</button>
+    </div>
+  </dialog>
+
+  <dialog id="settingsDialog" class="sheet-dialog">
+    <form method="dialog" class="dialog-shell" id="settingsForm">
+      <div class="dialog-handle"></div>
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">기본 설정</p>
+          <h2>여행 정보</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="닫기">✕</button>
+      </div>
+
+      <label class="owner-only">
+        <span>여행 이름</span>
+        <input id="tripNameInput" maxlength="30" placeholder="예: 친구들이랑 여름 모임" />
+      </label>
+
+      <label class="owner-only">
+        <span>지역</span>
+        <input id="tripLocationInput" maxlength="40" placeholder="예: 서울 · 합정" />
+      </label>
+
+      <div class="form-grid owner-only">
+        <label>
+          <span>시작일</span>
+          <input id="tripStartInput" type="date" />
+        </label>
+        <label>
+          <span>종료일</span>
+          <input id="tripEndInput" type="date" />
+        </label>
+      </div>
+
+      <label>
+        <span>이 기기의 사용자</span>
+        <select id="meSelect"></select>
+      </label>
+      <p class="hint settings-hint">여행 정보와 지출은 모두에게 공유되고, 내 이름 선택만 이 기기에 저장돼.</p>
+
+      <div class="shared-mode-notice hidden" id="sharedModeNotice">
+        <span>🔗</span>
+        <div>
+          <strong>초대 링크로 참여 중이야</strong>
+          <small>이 여행의 기록과 정산만 보여.</small>
+        </div>
+      </div>
+
+      <button type="button" class="settings-trip-switch-button owner-only" id="openTripSwitcherFromSettingsBtn">
+        <span>
+          <small>현재 여행</small>
+          <strong id="settingsCurrentTripName">여행 가계부</strong>
+        </span>
+        <b>다른 여행 보기 ›</b>
+      </button>
+
+      <fieldset class="owner-only">
+        <legend>참여자</legend>
+        <div class="participant-add-row">
+          <input id="newParticipantInput" maxlength="12" placeholder="이름 입력" />
+          <button type="button" class="small-button" id="addParticipantBtn">추가</button>
+        </div>
+        <div id="participantManageList" class="manage-list"></div>
+      </fieldset>
+
+      <section class="settings-tool-section owner-only">
+        <div class="settings-tool-heading">
+          <div>
+            <span class="settings-tool-label">장부 상태</span>
+            <strong id="ledgerLockStatus">수정 가능</strong>
+            <small id="ledgerLockDescription">누구나 지출을 추가하고 수정할 수 있어.</small>
+          </div>
+          <button type="button" class="ledger-toggle-button" id="toggleLedgerLockBtn">장부 마감</button>
+        </div>
+      </section>
+
+      <section class="settings-tool-section">
+        <div class="settings-tool-title">
+          <div>
+            <span class="settings-tool-label">백업·내보내기</span>
+            <strong>여행 기록 보관</strong>
+          </div>
+        </div>
+        <div class="export-button-grid">
+          <button type="button" class="export-button" id="downloadCsvBtn">
+            <span>CSV</span>
+            <small>엑셀에서 열기</small>
+          </button>
+          <button type="button" class="export-button" id="downloadJsonBtn">
+            <span>JSON</span>
+            <small>전체 데이터 백업</small>
+          </button>
+        </div>
+      </section>
+
+      <p id="settingsError" class="form-error hidden"></p>
+      <div class="dialog-actions">
+        <button type="button" class="secondary-button" id="closeSettingsBtn">닫기</button>
+        <button type="submit" class="primary-button owner-only" id="saveTripSettingsBtn">여행 정보 저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="expenseDetailDialog" class="sheet-dialog">
+    <div class="dialog-shell">
+      <div class="dialog-handle"></div>
+      <div id="expenseDetailContent"></div>
+    </div>
+  </dialog>
+
+  <dialog id="receiptViewerDialog" class="receipt-viewer-dialog">
+    <div class="receipt-viewer-shell">
+      <div class="receipt-viewer-toolbar">
+        <div>
+          <strong>영수증 보기</strong>
+          <small>두 손가락으로 확대하거나 버튼을 사용해줘</small>
+        </div>
+        <button type="button" class="receipt-viewer-close" id="closeReceiptViewerBtn" aria-label="영수증 닫기">✕</button>
+      </div>
+      <div class="receipt-viewer-stage" id="receiptViewerStage">
+        <img id="receiptViewerImage" alt="확대한 영수증 사진" />
+      </div>
+      <div class="receipt-viewer-controls">
+        <button type="button" id="receiptZoomOutBtn" aria-label="축소">−</button>
+        <button type="button" id="receiptZoomResetBtn">100%</button>
+        <button type="button" id="receiptZoomInBtn" aria-label="확대">＋</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="unsavedChangesDialog" class="confirm-dialog">
+    <div class="confirm-dialog-card">
+      <span class="confirm-dialog-icon">✎</span>
+      <h2>작성 중인 내용이 있어</h2>
+      <p>지금 나가면 입력하거나 수정한 내용이 사라져.</p>
+      <div class="confirm-dialog-actions">
+        <button type="button" class="secondary-button" id="keepEditingBtn">계속 작성</button>
+        <button type="button" class="leave-button" id="leaveWithoutSavingBtn">나가기</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="creatorDialog" class="creator-dialog">
+    <div class="creator-card">
+      <button type="button" class="creator-close-button" id="closeCreatorDialogBtn" aria-label="닫기">✕</button>
+
+      <div class="creator-original-image">
+        <img src="./assets/creator-rabbit.png" alt="희수의 토끼 캐릭터" />
+      </div>
+
+      <span class="creator-made-badge">MADE BY HEE SOO</span>
+      <p class="creator-kicker">이 여행 장부를 만든 사람</p>
+      <h2>개발자: 희수</h2>
+
+      <button type="button" class="creator-confirm-button" id="confirmCreatorDialogBtn">따봉 👍</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <div id="undoToast" class="undo-toast" role="status" aria-live="polite">
+    <span id="undoToastMessage">지출을 삭제했어.</span>
+    <button type="button" id="undoDeleteBtn">되돌리기</button>
+  </div>
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-card">
+      <span class="loading-spinner" aria-hidden="true"></span>
+      <strong id="loadingText">공동 장부 불러오는 중…</strong>
+    </div>
+  </div>
+
+  <script>
+    window.__travelLedgerBootError = function (message) {
+      const overlay = document.getElementById("loadingOverlay");
+      const text = document.getElementById("loadingText");
+      if (overlay) overlay.classList.remove("hidden");
+      if (text) {
+        text.innerHTML = "연결 준비 중 오류가 생겼어.<br><small style='font-weight:500;line-height:1.5'>" +
+          String(message || "페이지를 새로고침해줘.") +
+          "</small><br><button type='button' onclick='location.reload(true)' style='margin-top:12px;border:0;border-radius:12px;padding:10px 14px;background:#4F6BFF;color:white;font-weight:800'>다시 불러오기</button>";
+      }
+    };
+
+    window.addEventListener("error", function (event) {
+      window.__travelLedgerBootError(event.message);
+    });
+
+    window.addEventListener("unhandledrejection", function (event) {
+      const reason = event.reason && event.reason.message ? event.reason.message : event.reason;
+      window.__travelLedgerBootError(reason);
+    });
+  </script>
+  <script src="./app.js?v=20260714x"></script>
+</body>
+</html>
