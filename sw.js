@@ -1,42 +1,22 @@
-const CACHE_NAME = "moatrip-v2-22";
-const ASSETS = [
-  "./assets/creator-rabbit.png",
-  "./",
-  "./index.html",
-  "./styles.css?v=20260714x",
-  "./app.js?v=20260714x",
-  "./manifest.webmanifest",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
-  self.skipWaiting();
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
-    )),
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  const url = new URL(event.request.url);
-
-  if (url.origin !== self.location.origin) return;
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        return response;
-      })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html"))),
-  );
-});
+{
+  "name": "모아트립",
+  "short_name": "모아트립",
+  "description": "여행비를 함께 기록하고 정산하는 공동 여행 장부",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F5F7FB",
+  "theme_color": "#4F6BFF",
+  "lang": "ko-KR",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
